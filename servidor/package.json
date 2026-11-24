@@ -1,0 +1,13 @@
+{
+  "name": "heroes-en-combate-servidor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor online de Héroes en Combate: empareja jugadores y pasa sus teclas.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.23.0"
+  }
+}

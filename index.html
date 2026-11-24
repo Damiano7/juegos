@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mis Juegos</title>
+  <link rel="icon" href="data:,">
+  <style>
+    body { margin: 0; min-height: 100vh; background: linear-gradient(#1a1040, #6c2278 70%, #ec6a5c); color: #fff;
+           font-family: Impact, "Arial Black", sans-serif; display: flex; flex-direction: column; align-items: center; }
+    h1 { font-size: 64px; color: #ffe14d; margin: 48px 0 24px; text-shadow: 4px 4px 0 #140a26; letter-spacing: 2px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; padding: 0 24px 48px; }
+    a.card { display: block; width: 260px; padding: 28px 20px; border-radius: 16px; background: #1c1038; color: #fff;
+             text-decoration: none; border: 4px solid #ffe14d; text-align: center; transition: transform .15s; }
+    a.card:hover { transform: scale(1.06); }
+    .card .icon { font-size: 64px; }
+    .card .name { font-size: 28px; margin-top: 8px; }
+    .card .desc { font-family: system-ui, sans-serif; font-size: 15px; color: #d9c8ff; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>MIS JUEGOS</h1>
+  <div class="grid">
+    <a class="card" href="pelea/index.html">
+      <div class="icon">🥊</div>
+      <div class="name">HÉROES EN COMBATE</div>
+      <div class="desc">Pelea de superhéroes · 1 o 2 jugadores</div>
+    </a>
+  </div>
+</body>
+</html>

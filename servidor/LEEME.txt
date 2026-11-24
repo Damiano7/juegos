@@ -1,0 +1,19 @@
+SERVIDOR ONLINE — HÉROES EN COMBATE
+===================================
+Esta carpeta NO es para la página web: va en la VPS de Oracle.
+(En Hostinger queda bloqueada con el archivo .htaccess, no se ve desde internet.)
+
+Qué hace: empareja automáticamente al que busca rival con el que está esperando,
+y durante la pelea le pasa a cada uno las teclas del otro.
+
+INSTALAR (una sola vez, en la VPS):
+  cd ~/juegos/servidor
+  bash instalar.sh server.delegacionesbahia.com
+
+ACTUALIZAR (solo si cambia algo en esta carpeta):
+  bash ~/juegos/servidor/actualizar.sh
+
+VER SI ANDA:
+  En el navegador: https://server.delegacionesbahia.com   → "Servidor ... funcionando"
+  En la VPS:       sudo systemctl status heroes-online
+  Ver registros:   sudo journalctl -u heroes-online -n 50

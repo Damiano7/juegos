@@ -1,0 +1,55 @@
+HÉROES EN COMBATE
+=================
+
+CÓMO ABRIRLO
+- Con XAMPP prendido: http://localhost/juegos/pelea/
+- O sin XAMPP: doble clic en index.html (funciona igual, no necesita internet).
+- F11 en el navegador = pantalla completa.
+
+CONTROLES
+  1 JUGADOR (contra la máquina)
+    Moverse ← →   Saltar ↑   Defenderse ↓
+    Golpe A   Patada S   Súper D
+    Menús: flechas y ENTER · ESC para volver
+
+  2 JUGADORES (mismo teclado)
+                 JUGADOR 1        JUGADOR 2
+  Moverse        A / D            ← / →
+  Saltar         W                ↑
+  Defenderse     S                ↓
+  Golpe          F                I  (o 1 del numérico)
+  Patada         G                O  (o 2 del numérico)
+  Súper          H                P  (o 3 del numérico)
+
+  Pausa: ESC   ·   Sonido on/off: M   ·   También funcionan joysticks USB.
+  El juego ocupa toda la ventana, sea del tamaño que sea.
+
+HÉROES (→ = hacia el rival)
+  ARÁCNIDO    Doble salto.            Combo ↓ → GOLPE: Disparo de Red (deja pegado al rival)
+                                      Súper: Red Gigante
+  DOBLE FILO  Se cura solo.           Combo → → GOLPE: Corte Veloz
+                                      Súper: Tornado de Espadas
+  PROTÓN      Vuela (mantener ↑).     Combo ↓ → PATADA: Pulso de Energía
+                                      Súper: Rayo Protónico
+  CENTINELA   Bloqueo perfecto.       Combo ← → GOLPE: Escudo Bumerán
+                                      Súper: Golpe Sísmico
+
+La barra de PODER se llena pegando y recibiendo golpes. Cuando está llena, apretá Súper.
+Se gana al mejor de 3 rounds.
+
+MODO ONLINE
+  Menú → "ONLINE · BUSCAR RIVAL". Cuando otro jugador entra al mismo modo, se emparejan solos.
+  Cada uno juega con flechas + A S D. Al final, si los dos aceptan, hay revancha.
+  La dirección del servidor está en js/online-config.js.
+  Para probarlo con un servidor en tu propia PC: index.html?server=ws://localhost:8787
+
+PARA TOCAR COSAS (archivos en la carpeta js/)
+- characters.js : cada héroe. "speed" = velocidad, "jump" = salto, "dmg" = daño,
+                  "stuckT" = segundos que queda pegado en la red, "regen" = cada cuántos
+                  segundos se cura 1 punto Doble Filo. Nombres y colores también están acá.
+- ai.js         : qué tan difícil es la máquina en cada nivel.
+- menus.js      : menú principal, "Cómo se juega" y selección de héroes.
+- fight.js      : la pelea y su pantalla (tiempo del round: buscar "timeLeft = 60").
+- net.js        : conexión online (solo viajan las teclas; retraso de 4 cuadros).
+- ui.js         : estilo visual (tipografías, colores, teclas dibujadas, escenario).
+Después de cambiar algo, guardá y recargá la página (F5).
