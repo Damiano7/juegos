@@ -1,4 +1,10 @@
+# Dependencias y archivos del sistema
 node_modules/
 *.log
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Material de trabajo: no hace falta en la página
+pelea/arte/
+test_*.js

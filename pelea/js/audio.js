@@ -67,6 +67,8 @@ const Sfx = (() => {
     laser() { tone({ freq: 220, dur: 1.1, type: 'sawtooth', vol: 0.15 }); tone({ freq: 330, to: 340, dur: 1.1, type: 'square', vol: 0.08 }); },
     shield() { tone({ freq: 500, to: 250, dur: 0.3, type: 'triangle', vol: 0.25 }); noise({ dur: 0.25, vol: 0.15, filter: 1500, type: 'bandpass' }); },
     boom() { noise({ dur: 0.5, vol: 0.9, filter: 500, sweepTo: 60 }); tone({ freq: 90, to: 30, dur: 0.5, type: 'sine', vol: 0.9 }); },
+    zap() { noise({ dur: 0.18, vol: 0.4, filter: 3500, type: 'highpass' }); tone({ freq: 1800, to: 300, dur: 0.16, type: 'sawtooth', vol: 0.12 }); tone({ freq: 90, dur: 0.12, type: 'square', vol: 0.1 }); },
+    fire() { noise({ dur: 0.45, vol: 0.55, filter: 700, type: 'lowpass', sweepTo: 2500 }); tone({ freq: 140, to: 70, dur: 0.35, type: 'sawtooth', vol: 0.15 }); },
     jet() { noise({ dur: 0.1, vol: 0.12, filter: 400, type: 'lowpass' }); },
     jump() { tone({ freq: 300, to: 600, dur: 0.1, type: 'square', vol: 0.08 }); },
     super() { tone({ freq: 200, to: 1600, dur: 0.45, type: 'sawtooth', vol: 0.2 }); tone({ freq: 400, to: 2400, dur: 0.45, type: 'square', vol: 0.08, delay: 0.05 }); },

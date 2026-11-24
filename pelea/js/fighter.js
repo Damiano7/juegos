@@ -189,7 +189,9 @@ class Fighter {
     if (!m) return false;
     this.comboCd = 1.2;
     this.startMove(m, scene);
-    scene.popText(this, '¡' + this.def.combo.name.toUpperCase() + '!', '#ffffff');
+    let name = this.def.combo.name;
+    if (this.def.combo.copies) name = opp && opp.def.id !== this.def.id ? 'Copia: ' + opp.def.combo.name : 'Destello';
+    scene.popText(this, '¡' + name.toUpperCase() + '!', '#ffffff');
     return true;
   }
 
@@ -270,6 +272,10 @@ class Fighter {
           return { lean: -0.08, fa: [1.6, 0.0], ba: [1.5, 0.05], fl: [0.4, -0.25], bl: [-0.4, -0.15], rot: 0, head: 0 };
         case 'slamUp':
           return { lean: -0.1, fa: [2.9, 0.2], ba: [2.7, 0.3], fl: [0.8, -1.5], bl: [0.2, -1.3], rot: 0, head: -0.2 };
+        case 'summon':
+          return { lean: -0.12, fa: [2.95, 0.1 + Math.sin(mt * 20) * 0.05], ba: [0.7, 1.3], fl: [0.5, -0.2], bl: [-0.5, -0.2], rot: 0, head: -0.25 };
+        case 'charge':
+          return { lean: 0.3, fa: [-0.7, 1.3], ba: [1.0, 1.7], fl: [1.0, -1.6], bl: [-0.35, -1.1], rot: 0, head: 0.15 };
         case 'slamDown':
           return { lean: 0.5, fa: [1.0, 0.1], ba: [0.7, 0.3], fl: [1.3, -2.0], bl: [-0.2, -1.6], rot: 0, head: 0.2 };
         default: break;
@@ -335,55 +341,236 @@ class Fighter {
     return out;
   }
 
+  ensureSprites(scene, g) {
+    if (this.sprites && this.spritesScene === scene && this.spriteContainer && this.spriteContainer.scene) return;
+    this.destroySprites();
+    this.spritesScene = scene;
+    this.sprites = {};
+
+    const id = this.def.id;
+    const container = scene.add.container(g ? g.x : 0, g ? g.y : 0);
+    if (g) {
+      container.setScale(g.scaleX, g.scaleY);
+      const targetParent = g.parentContainer || (scene.world || null);
+      if (targetParent) {
+        if (targetParent.list && targetParent.list.includes(g)) {
+          const idx = targetParent.list.indexOf(g);
+          targetParent.addAt(container, idx + 1);
+        } else {
+          targetParent.add(container);
+        }
+      }
+    } else if (scene.world) {
+      scene.world.add(container);
+    }
+    this.spriteContainer = container;
+
+    const defs = [
+      { key: 'brazoB', tex: `${id}_brazo`, ox: 0.5, oy: 32 / 164, dark: true },
+      { key: 'antebrazoB', tex: `${id}_antebrazo`, ox: 0.5, oy: 32 / 160, dark: true },
+      { key: 'manoB', tex: `${id}_mano`, ox: 0.5, oy: 0.5, dark: true },
+      { key: 'pieB', tex: `${id}_pie`, ox: 36 / 96, oy: 24 / 64, dark: true },
+      { key: 'piernaB', tex: `${id}_pierna`, ox: 0.5, oy: 36 / 196, dark: true },
+      { key: 'musloB', tex: `${id}_muslo`, ox: 0.5, oy: 36 / 196, dark: true },
+      { key: 'torso', tex: `${id}_torso`, ox: 0.5, oy: 210 / 240, dark: false },
+      { key: 'pieF', tex: `${id}_pie`, ox: 36 / 96, oy: 24 / 64, dark: false },
+      { key: 'piernaF', tex: `${id}_pierna`, ox: 0.5, oy: 36 / 196, dark: false },
+      { key: 'musloF', tex: `${id}_muslo`, ox: 0.5, oy: 36 / 196, dark: false },
+      { key: 'cabeza', tex: `${id}_cabeza`, ox: 0.5, oy: 0.5, dark: false },
+      { key: 'brazoF', tex: `${id}_brazo`, ox: 0.5, oy: 32 / 164, dark: false },
+      { key: 'antebrazoF', tex: `${id}_antebrazo`, ox: 0.5, oy: 32 / 160, dark: false },
+      { key: 'manoF', tex: `${id}_mano`, ox: 0.5, oy: 0.5, dark: false },
+    ];
+
+    for (const d of defs) {
+      if (scene.textures && scene.textures.exists(d.tex)) {
+        const s = scene.add.image(0, 0, d.tex);
+        s.setOrigin(d.ox, d.oy);
+        s.setVisible(false);
+        s.isDark = d.dark;
+        container.add(s);
+        this.sprites[d.key] = s;
+      }
+    }
+  }
+
+  destroySprites() {
+    if (this.spriteContainer) {
+      if (this.spriteContainer.scene) this.spriteContainer.destroy();
+      this.spriteContainer = null;
+    }
+    this.sprites = null;
+    this.spritesScene = null;
+    if (this.stuckSprite) {
+      if (this.stuckSprite.scene) this.stuckSprite.destroy();
+      this.stuckSprite = null;
+    }
+  }
+
+  hideSprites() {
+    if (this.spriteContainer) {
+      this.spriteContainer.setVisible(false);
+    }
+    if (this.stuckSprite) this.stuckSprite.setVisible(false);
+  }
+
+  updateSprites(J, flash) {
+    if (!this.sprites) return;
+    const S = this.sprites;
+    const facing = J.facing;
+    const scaleX = 0.25 * facing;
+    const scaleY = 0.25;
+
+    const isAlt = this.colors === this.def.alt;
+    const baseTint = isAlt ? 0x6644aa : 0xffffff;
+    const darkTint = isAlt ? 0x442a77 : 0xa0a8b4;
+
+    const angleBetween = (p1, p2) => Math.atan2(p2.y - p1.y, p2.x - p1.x) - Math.PI / 2;
+
+    const setPart = (sprite, pos, angle) => {
+      if (!sprite) return;
+      sprite.setVisible(true);
+      sprite.setPosition(pos.x, pos.y);
+      sprite.setRotation(angle);
+      sprite.setScale(scaleX, scaleY);
+      if (flash) {
+        sprite.setTint(0xffffff);
+      } else {
+        sprite.setTint(sprite.isDark ? darkTint : baseTint);
+      }
+    };
+
+    // Extremidades traseras
+    setPart(S.brazoB, J.sh, angleBetween(J.sh, J.be));
+    setPart(S.antebrazoB, J.be, angleBetween(J.be, J.bh));
+    setPart(S.manoB, J.bh, angleBetween(J.be, J.bh));
+
+    setPart(S.musloB, J.hip, angleBetween(J.hip, J.bk));
+    setPart(S.piernaB, J.bk, angleBetween(J.bk, J.bf));
+    setPart(S.pieB, J.bf, angleBetween(J.bk, J.bf) * 0.2);
+
+    // Torso
+    const rotTorso = Math.atan2(J.sh.y - J.hip.y, J.sh.x - J.hip.x) + Math.PI / 2;
+    setPart(S.torso, J.hip, rotTorso);
+
+    // Extremidades delanteras
+    setPart(S.musloF, J.hip, angleBetween(J.hip, J.fk));
+    setPart(S.piernaF, J.fk, angleBetween(J.fk, J.ff));
+    setPart(S.pieF, J.ff, angleBetween(J.fk, J.ff) * 0.2);
+
+    // Cabeza
+    const P = this.pose();
+    const rotHead = ((P.rot || 0) + J.lean + (P.head || 0)) * facing;
+    setPart(S.cabeza, J.head, rotHead);
+
+    setPart(S.brazoF, J.sh, angleBetween(J.sh, J.fe));
+    setPart(S.antebrazoF, J.fe, angleBetween(J.fe, J.fh));
+    setPart(S.manoF, J.fh, angleBetween(J.fe, J.fh));
+  }
+
   draw(g, scene) {
+    scene = scene || (g && g.scene);
+    if (!scene) return;
     const J = this.joints();
     const flash = this.flashT > 0;
     const C = this.colors;
     const col = (c) => (flash ? 0xffffff : c);
     const suit = col(C.suit), dark = col(shade(C.suit, 0.65)), acc = col(C.accent), accDark = col(shade(C.accent, 0.7));
 
-    if (this.def.drawBack) this.def.drawBack(g, this, J, col);
-    // Pierna y brazo de atrás (más oscuros)
-    drawLimb(g, J.hip, J.bk, 14, dark);
-    drawLimb(g, J.bk, J.bf, 12, dark);
-    g.fillStyle(accDark, 1); g.fillCircle(J.bf.x + 3 * J.facing, J.bf.y, 7);
-    drawLimb(g, J.sh, J.be, 11, dark);
-    drawLimb(g, J.be, J.bh, 10, dark);
-    g.fillStyle(accDark, 1); g.fillCircle(J.bh.x, J.bh.y, 7);
-    if (this.def.drawBackHand) this.def.drawBackHand(g, this, J, col);
+    const id = this.def.id;
+    if (typeof initHeroTextures === 'function' && scene.textures && !scene.textures.exists(id + '_cabeza')) {
+      initHeroTextures(scene);
+    }
+    const hasHeadSprite = scene.textures && scene.textures.exists(id + '_cabeza');
 
-    // Torso
-    drawLimb(g, J.hip, J.sh, 28, suit);
-    if (this.def.drawTorso) this.def.drawTorso(g, this, J, col);
+    if (hasHeadSprite) {
+      this.ensureSprites(scene, g);
+      if (this.spriteContainer && this.spriteContainer.scene) {
+        const targetParent = (g && g.parentContainer) ? g.parentContainer : (scene.world || null);
+        if (targetParent) {
+          if (this.spriteContainer.parentContainer !== targetParent) {
+            if (targetParent.list && targetParent.list.includes(g)) {
+              const idx = targetParent.list.indexOf(g);
+              targetParent.addAt(this.spriteContainer, idx + 1);
+            } else {
+              targetParent.add(this.spriteContainer);
+            }
+          }
+        } else if (!targetParent && this.spriteContainer.parentContainer) {
+          scene.children.add(this.spriteContainer);
+        }
 
-    // Pierna de adelante
-    drawLimb(g, J.hip, J.fk, 14, suit);
-    drawLimb(g, J.fk, J.ff, 12, suit);
-    g.fillStyle(acc, 1); g.fillCircle(J.ff.x + 3 * J.facing, J.ff.y, 7);
+        this.spriteContainer.setPosition(g ? g.x || 0 : 0, g ? g.y || 0 : 0);
+        this.spriteContainer.setScale(g ? g.scaleX || 1 : 1, g ? g.scaleY || 1 : 1);
+        this.spriteContainer.setVisible(g ? g.visible !== false : true);
+        this.spriteContainer.setAlpha(g && g.alpha !== undefined ? g.alpha : 1);
+        if (!this.spriteContainer.parentContainer) {
+          this.spriteContainer.setDepth((g && g.depth) ? g.depth : 0);
+        }
+      }
+      this.updateSprites(J, flash);
+      if (this.def.drawBack) this.def.drawBack(g, this, J, col);
+      if (this.def.drawBackHand) this.def.drawBackHand(g, this, J, col);
+      if (this.def.drawFront) this.def.drawFront(g, this, J, col);
+    } else {
+      this.hideSprites();
+      if (this.def.drawBack) this.def.drawBack(g, this, J, col);
+      // Pierna y brazo de atrás (más oscuros)
+      drawLimb(g, J.hip, J.bk, 14, dark);
+      drawLimb(g, J.bk, J.bf, 12, dark);
+      g.fillStyle(accDark, 1); g.fillCircle(J.bf.x + 3 * J.facing, J.bf.y, 7);
+      drawLimb(g, J.sh, J.be, 11, dark);
+      drawLimb(g, J.be, J.bh, 10, dark);
+      g.fillStyle(accDark, 1); g.fillCircle(J.bh.x, J.bh.y, 7);
+      if (this.def.drawBackHand) this.def.drawBackHand(g, this, J, col);
 
-    // Cabeza
-    g.fillStyle(col(C.head), 1);
-    g.fillCircle(J.head.x, J.head.y, HEAD_R);
-    if (this.def.drawHead) this.def.drawHead(g, this, J, col);
+      // Torso
+      drawLimb(g, J.hip, J.sh, 28, suit);
+      if (this.def.drawTorso) this.def.drawTorso(g, this, J, col);
 
-    // Brazo de adelante
-    drawLimb(g, J.sh, J.fe, 11, suit);
-    drawLimb(g, J.fe, J.fh, 10, suit);
-    g.fillStyle(acc, 1); g.fillCircle(J.fh.x, J.fh.y, 7);
-    if (this.def.drawFront) this.def.drawFront(g, this, J, col);
+      // Pierna de adelante
+      drawLimb(g, J.hip, J.fk, 14, suit);
+      drawLimb(g, J.fk, J.ff, 12, suit);
+      g.fillStyle(acc, 1); g.fillCircle(J.ff.x + 3 * J.facing, J.ff.y, 7);
+
+      // Cabeza
+      g.fillStyle(col(C.head), 1);
+      g.fillCircle(J.head.x, J.head.y, HEAD_R);
+      if (this.def.drawHead) this.def.drawHead(g, this, J, col);
+
+      // Brazo de adelante
+      drawLimb(g, J.sh, J.fe, 11, suit);
+      drawLimb(g, J.fe, J.fh, 10, suit);
+      g.fillStyle(acc, 1); g.fillCircle(J.fh.x, J.fh.y, 7);
+      if (this.def.drawFront) this.def.drawFront(g, this, J, col);
+    }
 
     // Atrapado en telaraña
     if (this.stuckT > 0) {
-      const hb = this.hurtbox();
-      g.lineStyle(2, 0xffffff, 0.85);
-      const cx = this.x, cy = hb.y + hb.h / 2;
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2;
-        g.lineBetween(cx, cy, cx + Math.cos(a) * 46, cy + Math.sin(a) * 74);
+      if (scene.textures && scene.textures.exists('aracnido_red_atrapado')) {
+        if (!this.stuckSprite || this.stuckSprite.scene !== scene) {
+          this.stuckSprite = scene.add.image(0, 0, 'aracnido_red_atrapado').setScale(0.25).setDepth((g.depth || 0) + 1);
+          const targetParent = (g && g.parentContainer) ? g.parentContainer : (scene.world || null);
+          if (targetParent) {
+            targetParent.add(this.stuckSprite);
+          }
+        }
+        const hb = this.hurtbox();
+        this.stuckSprite.setVisible(true).setPosition(this.x, hb.y + hb.h / 2);
+      } else {
+        const hb = this.hurtbox();
+        g.lineStyle(2, 0xffffff, 0.85);
+        const cx = this.x, cy = hb.y + hb.h / 2;
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          g.lineBetween(cx, cy, cx + Math.cos(a) * 46, cy + Math.sin(a) * 74);
+        }
+        for (let r = 1; r <= 3; r++) {
+          g.strokeEllipse(cx, cy, 30 * r, 48 * r);
+        }
       }
-      for (let r = 1; r <= 3; r++) {
-        g.strokeEllipse(cx, cy, 30 * r, 48 * r);
-      }
+    } else if (this.stuckSprite) {
+      this.stuckSprite.setVisible(false);
     }
   }
 }

@@ -16,6 +16,7 @@ function comboKeys(seq, player, facing) {
 // Un héroe dibujado a escala, con sombra.
 class HeroView {
   constructor(scene, def, x, y, scale, facing = 1, colors) {
+    this.scene = scene;
     this.f = new Fighter(def, 0, colors);
     this.f.x = 0; this.f.y = 0; this.f.facing = facing;
     this.g = scene.add.graphics({ x, y }).setScale(scale);
@@ -25,7 +26,11 @@ class HeroView {
     this.f.animT += dt;
     this.g.clear();
     if (this.shadow) { this.g.fillStyle(0x000000, 0.35); this.g.fillEllipse(0, 4, 70, 12); }
-    this.f.draw(this.g);
+    this.f.draw(this.g, this.scene);
+  }
+  destroy() {
+    if (this.f) this.f.destroySprites();
+    if (this.g) this.g.destroy();
   }
 }
 
@@ -132,6 +137,9 @@ class MenuScene extends Phaser.Scene {
     this.buildHelp();
     this.inp = new MenuInput(this);
     this.input.keyboard.on('keydown', () => Sfx.unlock());
+    this.events.once('shutdown', () => {
+      this.heroes.forEach((h) => h.destroy());
+    });
     this.sparkT = 0;
     this.refresh();
   }
@@ -284,18 +292,27 @@ class SelectScene extends Phaser.Scene {
     skewPanel(chip, 18, 14, 196, 26, 6, COL.ink, 0.9, 0xffffff, 1, 0.25);
     uiText(this, 116, 27, this.online ? 'ONLINE' : this.mode === 'cpu' ? 'VS MÁQUINA · ' + AI_LEVELS[Settings.difficulty].name : '2 JUGADORES', 14, '#c9c2e8', { ox: 0.5 }).setDepth(8);
 
+    // Grilla de retratos (4 x 2) en el centro
+    this.tileG = this.add.graphics().setDepth(5);
     this.cards = CHARACTERS.map((c, i) => {
-      const cx = 135 + i * 230;
-      const box = this.add.container(cx, 0).setDepth(5);
-      const g = this.add.graphics();
-      const glow = this.add.image(0, 210, 'glow').setTint(c.colors.accent).setBlendMode(Phaser.BlendModes.ADD).setScale(2.2).setAlpha(0.45);
-      const hero = new HeroView(this, c, 0, 282, 1.12, 1);
-      const name = titleText(this, 0, 307, c.name, 30, { color: COL.inkS, strokeW: 0, shadow: false });
-      const stats = Object.keys(c.stats).map((k, j) => uiText(this, (j % 2 ? 8 : -86), 340 + Math.floor(j / 2) * 17, k, 13, '#c9c2e8'));
-      const stamp = titleText(this, 0, 196, '¡LISTO!', 40, { gradient: GRAD.gold }).setAngle(-12).setVisible(false);
-      box.add([g, glow, hero.g, name, ...stats, stamp]);
-      return { cx, box, g, glow, hero, name, stamp, def: c };
+      const cx = 480 + ((i % 4) - 1.5) * 118, cy = 140 + Math.floor(i / 4) * 120;
+      const icon = this.add.graphics({ x: cx, y: cy - 10 }).setScale(2.05).setDepth(6);
+      drawHeadIcon(icon, c, c.colors);
+      const name = titleText(this, cx, cy + 37, c.name, 17, { color: COL.inkS, strokeW: 0, shadow: false }).setDepth(7);
+      return { cx, cy, icon, name, def: c };
     });
+    // Héroes grandes a los costados
+    this.big = [0, 1].map((p) => {
+      const x = p === 0 ? 125 : 835;
+      const glow = this.add.image(x, 280, 'glow').setBlendMode(Phaser.BlendModes.ADD).setScale(2.6, 3.2).setAlpha(0.4).setDepth(3);
+      const view = new HeroView(this, CHARACTERS[this.cur[p]], x, 372, 1.45, p === 0 ? 1 : -1);
+      view.g.setDepth(4);
+      const name = titleText(this, x, 96, '', 34, { gradient: p === 0 ? GRAD.gold : GRAD.ice }).setDepth(7);
+      const stamp = titleText(this, x, 250, '¡LISTO!', 44, { gradient: GRAD.gold }).setAngle(-12).setVisible(false).setDepth(8);
+      return { x, glow, view, name, stamp, id: null };
+    });
+    this.statLabels = [0, 1].map((p) => Object.keys(CHARACTERS[0].stats).map((k, j) =>
+      uiText(this, (p === 0 ? 270 : 500) + (j % 2) * 104, 332 + Math.floor(j / 2) * 18, k, 13, '#c9c2e8').setDepth(7)));
     this.badges = [0, 1].map((p) => {
       const c = this.add.container(0, 0).setDepth(9);
       const g = this.add.graphics();
@@ -315,6 +332,10 @@ class SelectScene extends Phaser.Scene {
       ? [{ k: 'LEFT' }, { k: 'RIGHT' }, { t: 'Elegir' }, { gap: 22 }, { k: 'ENTER' }, { t: 'Confirmar' }, { gap: 22 }, { k: 'ESC' }, { t: 'Volver' }]
       : [{ t: 'J1', color: COL.p1s }, { k: 'A' }, { k: 'D' }, { k: 'F' }, { gap: 18 }, { t: 'J2', color: COL.p2s }, { k: 'LEFT' }, { k: 'RIGHT' }, { k: 'I' }, { gap: 18 }, { t: 'Deshacer:' }, { k: 'G' }, { k: 'O' }, { gap: 18 }, { k: 'ESC' }, { t: 'Menú' }];
     bottomBar(this, hint);
+    this.events.once('shutdown', () => {
+      this.big.forEach((b) => { if (b.view) b.view.destroy(); });
+      if (this.vsHeroes) this.vsHeroes.forEach((h) => h.destroy());
+    });
     this.inp = new MenuInput(this);
   }
 
@@ -348,7 +369,7 @@ class SelectScene extends Phaser.Scene {
       cont.add(keyRow(this, x0 + 56, 452, [...comboKeys(c.combo.seq, player, right ? -1 : 1).map((k) => ({ k })), { t: c.combo.name }], { size: 22, fontSize: 15 }));
     }
     cont.add(uiText(this, x0, 480, 'SÚPER', 13, '#ffd23f'));
-    const sup = !keysOf ? [{ t: c.superMove.name }] : [{ k: PLAYER_KEYS[player].special, ring: COL.gold }, { t: c.superMove.name + ' — ' + c.superMove.desc }];
+    const sup = !keysOf ? [{ t: c.superMove.name }] : [{ k: PLAYER_KEYS[player].special, ring: COL.gold }, { t: (c.superMove.name + ' — ' + c.superMove.desc).length > 46 ? c.superMove.name : c.superMove.name + ' — ' + c.superMove.desc }];
     cont.add(keyRow(this, x0 + 56, 480, sup, { size: 22, fontSize: 15 }));
     this.info[p] = cont;
   }
@@ -356,42 +377,57 @@ class SelectScene extends Phaser.Scene {
   showP2() { return this.mode !== 'cpu' || this.step >= 1; }
 
   drawCards(dt, time) {
+    const g = this.tileG; g.clear();
+    const show = [true, this.showP2()];
     this.cards.forEach((card, i) => {
-      const g = card.g; g.clear();
-      const s0 = this.cur[0] === i, s1 = this.cur[1] === i && this.showP2();
-      const sel = s0 || s1;
-      const def = card.def;
-      skewPanel(g, -100, 90, 200, 282, 10, COL.ink, 0.94);
-      skewPanel(g, -94, 96, 188, 194, 9, def.colors.suit, sel ? 0.65 : 0.35);
-      g.lineStyle(2, def.colors.accent, 0.12);
-      for (let k = -4; k < 6; k++) g.lineBetween(-90 + k * 40, 290, -40 + k * 40, 96);
-      skewPanel(g, -96, 290, 192, 34, 4, def.colors.accent, 1);
-      // Estadísticas
+      const s0 = this.cur[0] === i, s1 = this.cur[1] === i && show[1];
+      const def = card.def, x = card.cx - 52, y = card.cy - 48;
+      skewPanel(g, x, y, 104, 96, 6, COL.ink, 0.95);
+      skewPanel(g, x + 4, y + 4, 96, 66, 5, def.colors.suit, s0 || s1 ? 0.85 : 0.45);
+      skewPanel(g, x + 2, y + 72, 100, 22, 2, def.colors.accent, 1);
+      if (s0) { g.lineStyle(4, COL.p1, 1); g.strokePoints(skewPts(x - 4, y - 4, 112, 104, 6), true); }
+      if (s1) { g.lineStyle(4, COL.p2, 1); g.strokePoints(skewPts(s0 ? x + 2 : x - 4, s0 ? y + 2 : y - 4, s0 ? 100 : 112, s0 ? 92 : 104, 6), true); }
+      card.icon.setScale(s0 || s1 ? 2.25 : 2.05);
+    });
+    // Héroes grandes y sus estadísticas
+    [0, 1].forEach((p) => {
+      const B = this.big[p];
+      const vis = show[p];
+      B.view.g.setVisible(vis); B.glow.setVisible(vis); B.name.setVisible(vis);
+      this.statLabels[p].forEach((t) => t.setVisible(vis));
+      if (!vis) { B.stamp.setVisible(false); return; }
+      const def = CHARACTERS[this.cur[p]];
+      const mirror = p === 1 && this.cur[0] === this.cur[1];
+      const key = def.id + (mirror ? '*' : '');
+      if (B.id !== key) {
+        if (B.view.f) B.view.f.destroySprites();
+        B.id = key;
+        B.view.f = new Fighter(def, 0, mirror ? def.alt : def.colors);
+        B.view.f.x = 0; B.view.f.y = 0; B.view.f.facing = p === 0 ? 1 : -1;
+        setTitle(B.name, def.name);
+        B.glow.setTint(def.colors.accent);
+        B.view.g.setScale(1.1 * (p === 0 ? 1 : 1)); this.tweens.add({ targets: B.view.g, scale: 1.45, duration: 180, ease: 'Back.Out' });
+      }
+      B.glow.setAlpha(0.35 + Math.sin(time / 220) * 0.1);
+      const locked = this.locked[p];
+      B.view.f.victory = locked;
+      if (locked && !B.stamp.visible) { B.stamp.setVisible(true).setScale(2.5).setAlpha(0); this.tweens.add({ targets: B.stamp, scale: 1, alpha: 1, duration: 260, ease: 'Back.Out' }); }
+      if (!locked) B.stamp.setVisible(false);
+      B.view.update(dt);
       Object.values(def.stats).forEach((v, j) => {
-        const bx = (j % 2 ? 46 : -48), by = 340 + Math.floor(j / 2) * 17;
+        const bx = (p === 0 ? 304 : 534) + (j % 2) * 104, by = 332 + Math.floor(j / 2) * 18;
         for (let q = 0; q < 5; q++) {
           g.fillStyle(q < v ? def.colors.accent : 0x3a2d5c, 1);
-          g.fillPoints(skewPts(bx + q * 9, by - 5, 7, 10, 2), true);
+          g.fillPoints(skewPts(bx + q * 11, by - 5, 9, 10, 2), true);
         }
       });
-      if (s0) { g.lineStyle(4, COL.p1, 1); g.strokePoints(skewPts(-104, 86, 208, 290, 10), true); }
-      if (s1) { g.lineStyle(4, COL.p2, 1); g.strokePoints(skewPts(s0 ? -97 : -104, s0 ? 93 : 86, s0 ? 194 : 208, s0 ? 276 : 290, 10), true); }
-      card.box.y = approach(card.box.y, sel ? -8 : 0, 80 * dt);
-      card.glow.setAlpha(sel ? 0.55 + Math.sin(time / 200) * 0.15 : 0.18);
-      const chosen = (s0 && this.locked[0]) || (s1 && this.locked[1]);
-      card.hero.f.victory = chosen;
-      if (chosen && !card.stamp.visible) { card.stamp.setVisible(true).setScale(2.5).setAlpha(0); this.tweens.add({ targets: card.stamp, scale: 1, alpha: 1, duration: 260, ease: 'Back.Out' }); }
-      if (!chosen) card.stamp.setVisible(false);
-      const mirror = s1 && !s0 && this.cur[0] === this.cur[1];
-      card.hero.f.colors = mirror ? def.alt : def.colors;
-      card.hero.update(dt);
     });
     const c0 = this.cards[this.cur[0]], c1 = this.cards[this.cur[1]];
     const same = this.cur[0] === this.cur[1];
     const bob = Math.sin(time / 180) * 3;
-    this.badges[0].setPosition(c0.cx - (same ? 32 : 0), 72 + c0.box.y + bob);
-    this.badges[1].setPosition(c1.cx + (same ? 32 : 0), 72 + c1.box.y - bob);
-    this.badges[1].setVisible(this.showP2());
+    this.badges[0].setPosition(c0.cx - (same ? 30 : 0), c0.cy - 62 + bob);
+    this.badges[1].setPosition(c1.cx + (same ? 30 : 0), c1.cy - 62 - bob);
+    this.badges[1].setVisible(show[1]);
 
     const ig = this.infoG; ig.clear();
     skewPanel(ig, 22, 384, 446, 112, 8, COL.ink, 0.92, COL.p1, 2, 0.7);
@@ -429,6 +465,8 @@ class SelectScene extends Phaser.Scene {
     const vs = titleText(this, 480, 250, 'VS', 170, { gradient: GRAD.fire, strokeW: 14 }).setScale(4).setAlpha(0);
     V.add([dim, L, R, sh1, L2, R2, vs]);
     this.vsHeroes = [h1, h2];
+    h1.update(0);
+    h2.update(0);
     this.tweens.add({ targets: [L, L2], x: 0, duration: 380, ease: 'Cubic.Out' });
     this.tweens.add({ targets: [R, R2], x: 0, duration: 380, ease: 'Cubic.Out' });
     this.tweens.add({ targets: vs, scale: 1, alpha: 1, duration: 300, delay: 380, ease: 'Back.Out', onStart: () => { Sfx.boom(); this.cameras.main.flash(180, 255, 255, 255); this.cameras.main.shake(250, 0.012); } });
@@ -464,9 +502,12 @@ class SelectScene extends Phaser.Scene {
       const c = this.cursorControls(p);
       // Contra la máquina se elige con las flechas (o A/D) y se confirma con ENTER
       const left = cpu ? I.any('left') : c.pressed.left, right = cpu ? I.any('right') : c.pressed.right;
-      if (left) { this.cur[p] = (this.cur[p] + 3) % 4; Sfx.select(); }
-      if (right) { this.cur[p] = (this.cur[p] + 1) % 4; Sfx.select(); }
-      if (this.online && (left || right)) Net.send({ t: 'cur', i: this.cur[p] });
+      const up = cpu ? I.any('up') : c.pressed.up, down = cpu ? I.any('down') : c.pressed.down;
+      const N = CHARACTERS.length;
+      if (left) { this.cur[p] = (this.cur[p] + N - 1) % N; Sfx.select(); }
+      if (right) { this.cur[p] = (this.cur[p] + 1) % N; Sfx.select(); }
+      if (up || down) { this.cur[p] = (this.cur[p] + 4) % N; Sfx.select(); }
+      if (this.online && (left || right || up || down)) Net.send({ t: 'cur', i: this.cur[p] });
       if ((!cpu && c.pressed.punch) || (cpu && I.c1.pressed.punch) || ((p === 0 || cpu) && (I.enterP || I.spaceP))) {
         this.locked[p] = true; Sfx.confirm();
         if (this.online) Net.send({ t: 'lock', i: this.cur[p] });
@@ -484,19 +525,21 @@ class SelectScene extends Phaser.Scene {
   // Online: sigue al cursor del rival y maneja si se va. Devuelve true si no hay que seguir.
   onlineUpdate(I, dt) {
     const r = 1 - this.me;
-    if (Net.rival.left || Net.status === 'error') {
+    const badVersion = Net.rival.ver !== undefined && Net.rival.ver !== GAME_BUILD;
+    if (Net.rival.left || Net.status === 'error' || badVersion) {
       if (this.leftT < 0) {
         this.leftT = 0;
+        if (badVersion) Net.leave();
         const box = this.add.container(0, 0).setDepth(40);
         const g = this.add.graphics();
         g.fillStyle(0x05020f, 0.75); g.fillRect(BIG.x, BIG.y, BIG.w, BIG.h);
         skewPanel(g, 220, 200, 520, 130, 14, COL.ink, 0.97, COL.red, 3, 1);
-        box.add([g, titleText(this, 480, 245, 'TU RIVAL SE FUE', 46, { gradient: GRAD.red }),
-          uiText(this, 480, 298, 'Volviendo al menú…', 18, '#ffffff', { ox: 0.5 })]);
+        box.add([g, titleText(this, 480, 245, badVersion ? 'VERSIONES DISTINTAS' : 'TU RIVAL SE FUE', 46, { gradient: GRAD.red }),
+          uiText(this, 480, 298, badVersion ? 'Los dos tienen que recargar la página (F5) para tener la última versión.' : 'Volviendo al menú…', 17, '#ffffff', { ox: 0.5 })]);
         Net.close();
       }
       this.leftT += dt;
-      if (this.leftT > 2.5) fadeTo(this, 'menu');
+      if (this.leftT > (badVersion ? 5 : 2.5)) fadeTo(this, 'menu');
       return true;
     }
     this.cur[r] = Net.rival.cur;

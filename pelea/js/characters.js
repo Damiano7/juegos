@@ -37,11 +37,11 @@ function castMove(at, dur, spawn, pose = 'cast') {
 }
 
 const CHARACTERS = [
-  // ======================= ARÁCNIDO =======================
+  // ======================= ARÁCNIDO (SPIDER-MAN) =======================
   {
-    id: 'aracnido', name: 'ARÁCNIDO', tagline: 'Rápido y saltarín',
-    colors: { suit: 0x4b2a82, accent: 0x9be33b, head: 0x4b2a82 },
-    alt: { suit: 0x1f3b73, accent: 0xff4fa3, head: 0x1f3b73 },
+    id: 'aracnido', name: 'SPIDER-MAN', tagline: 'El superhéroe arácnido',
+    colors: { suit: 0xc02026, accent: 0x1b4ed8, head: 0xc02026 },
+    alt: { suit: 0x181820, accent: 0xffffff, head: 0x181820 },
     speed: 310, jump: 830, jumps: 2, stats: { VEL: 5, FUE: 2, DEF: 2, ESP: 4 },
     passive: 'Doble salto (tocá ↑ dos veces)',
     combo: { name: 'Disparo de Red', seq: ['down', 'fwd', 'punch'], label: '↓  →  GOLPE', desc: 'Pega al rival en el lugar' },
@@ -81,15 +81,14 @@ const CHARACTERS = [
     },
     drawHead(g, f, J, col) {
       const fx = J.facing;
-      g.fillStyle(col(f.colors.accent), 1);
-      // Cuatro ojitos de araña
-      g.fillCircle(J.head.x + 6 * fx, J.head.y - 3, 4);
-      g.fillCircle(J.head.x + 13 * fx, J.head.y - 3, 3.2);
-      g.fillCircle(J.head.x + 5 * fx, J.head.y + 5, 2.5);
-      g.fillCircle(J.head.x + 11 * fx, J.head.y + 5, 2.2);
-      g.lineStyle(1.5, col(shade(f.colors.suit, 1.6)), 0.8);
-      g.strokeCircle(J.head.x, J.head.y, HEAD_R - 4);
-      g.lineBetween(J.head.x, J.head.y - HEAD_R, J.head.x, J.head.y + HEAD_R);
+      const hx = J.head.x, hy = J.head.y;
+      // Gran ojo de Spider-Man (borde negro y centro blanco)
+      g.fillStyle(col(0x111111), 1);
+      g.fillTriangle(hx + 1 * fx, hy + 4, hx + 15 * fx, hy - 4, hx + 13 * fx, hy + 7);
+      g.fillStyle(col(0xffffff), 1);
+      g.fillTriangle(hx + 3 * fx, hy + 3, hx + 13 * fx, hy - 2, hx + 12 * fx, hy + 5);
+      g.lineStyle(1.5, col(0x111111), 0.8);
+      g.strokeCircle(hx, hy, HEAD_R);
     },
   },
 
@@ -98,7 +97,7 @@ const CHARACTERS = [
     id: 'doblefilo', name: 'DOBLE FILO', tagline: 'Espadachín que se cura solo',
     colors: { suit: 0x4b5563, accent: 0xff8a1f, head: 0x3a414d },
     alt: { suit: 0x5b2c2c, accent: 0xffd23f, head: 0x4a2222 },
-    speed: 285, jump: 770, jumps: 1, regen: 4.5, stats: { VEL: 4, FUE: 4, DEF: 2, ESP: 4 },
+    speed: 285, jump: 770, jumps: 1, regen: 6, stats: { VEL: 4, FUE: 4, DEF: 2, ESP: 4 },
     passive: 'Se cura solo de a poquito',
     combo: { name: 'Corte Veloz', seq: ['fwd', 'fwd', 'punch'], label: '→  →  GOLPE', desc: 'Cruza la pantalla cortando' },
     superMove: { name: 'Tornado de Espadas', desc: 'Gira como un remolino de filos' },
@@ -328,6 +327,274 @@ const CHARACTERS = [
       drawShield(g, cx, cy, 24, f, col, f.blocking ? 1 : 0.92);
     },
   },
+  // ======================= REMOLINO (ninja de los clones) =======================
+  {
+    id: 'remolino', name: 'REMOLINO', tagline: 'Ninja de los clones',
+    colors: { suit: 0x1f5fbf, accent: 0xffb31a, head: 0xe8b98a, hair: 0x14306b },
+    alt: { suit: 0x2e7d32, accent: 0xff7043, head: 0xe8b98a, hair: 0x1b3d1d },
+    speed: 290, jump: 790, jumps: 1, powerMul: 1.5, stats: { VEL: 3, FUE: 3, DEF: 3, ESP: 5 },
+    passive: 'Energía enorme: llena el súper más rápido',
+    combo: { name: 'Clones de Sombra', seq: ['down', 'down', 'punch'], desc: 'Dos copias suyas corren a pegar' },
+    superMove: { name: 'Esfera Espiral', desc: 'Una esfera de viento que gira y arrastra al rival' },
+    moves: {
+      punch: () => mkPunch(),
+      kick: () => mkKick(),
+      air: () => mkAirKick(),
+      combo: () => ({
+        id: 'clones', pose: 'cast', dur: 0.42, windows: [],
+        update(f, s) {
+          const clone = () => {
+            Sfx.whoosh();
+            s.dust(f.x, 5);
+            s.spawnProjectile(f, { kind: 'clone', w: 40, h: 110, y: f.y - 60, x: f.x - f.facing * 10, vx: 560, life: 0.9,
+              hit: { dmg: 6, kb: 200, stun: 0.4, sfx: 'punch', trauma: 0.25, hitstop: 0.05 } });
+          };
+          if (!this.a && this.t >= 0.06) { this.a = true; clone(); }
+          if (!this.b && this.t >= 0.2) { this.b = true; clone(); }
+        },
+      }),
+      super: () => ({
+        id: 'espiral', pose: 'cast', dur: 1.3, invuln: true, keepVx: true,
+        windows: [
+          { from: 0.45, to: 0.95, every: 0.09, box: { x: 10, y: 50, w: 80, h: 70 }, dmg: 3, kb: 60, stun: 0.3, sfx: 'punch', unblockable: true, isSuper: true, trauma: 0.2, hitstop: 0.02 },
+          { from: 0.97, to: 1.05, box: { x: 10, y: 40, w: 95, h: 90 }, dmg: 12, kb: 560, kbY: 420, stun: 0.7, sfx: 'kick', unblockable: true, isSuper: true, trauma: 0.8, hitstop: 0.14 },
+        ],
+        start() { Sfx.blast(); },
+        update(f) {
+          if (this.t < 0.42) f.vx = 0;
+          else if (this.t < 1.0) { this.pose = 'dash'; f.vx = f.facing * 520; }
+          else { this.pose = 'cast'; f.vx = 0; }
+        },
+      }),
+    },
+    drawBack(g, f, J, col) {
+      // Bufanda larga que flamea
+      const fx = J.facing, w = Math.sin(f.animT * 9) * 6;
+      g.lineStyle(7, col(f.colors.accent), 1);
+      g.lineBetween(J.sh.x - 4 * fx, J.sh.y - 4, J.sh.x - 34 * fx, J.sh.y + 6 + w);
+      g.lineStyle(6, col(shade(f.colors.accent, 0.8)), 1);
+      g.lineBetween(J.sh.x - 30 * fx, J.sh.y + 6 + w, J.sh.x - 52 * fx, J.sh.y + 16 - w);
+    },
+    drawTorso(g, f, J, col) {
+      const cx = lerp(J.hip.x, J.sh.x, 0.6), cy = lerp(J.hip.y, J.sh.y, 0.6);
+      g.fillStyle(col(f.colors.accent), 1);
+      g.fillPoints([{ x: cx, y: cy - 9 }, { x: cx + 7, y: cy }, { x: cx, y: cy + 9 }, { x: cx - 7, y: cy }], true);
+      g.lineStyle(6, col(f.colors.accent), 1);
+      g.lineBetween(J.sh.x - 12, J.sh.y + 4, J.sh.x + 12, J.sh.y + 4); // cuello de la bufanda
+      g.lineStyle(5, col(0x1a1a1a), 1);
+      g.lineBetween(J.hip.x - 13, J.hip.y - 3, J.hip.x + 13, J.hip.y - 3);
+    },
+    drawHead(g, f, J, col) {
+      const fx = J.facing, hx = J.head.x, hy = J.head.y;
+      // Pelo en mechones
+      g.fillStyle(col(f.colors.hair), 1);
+      g.fillTriangle(hx - 15 * fx, hy - 2, hx - 4 * fx, hy - 16, hx - 26 * fx, hy - 14);
+      g.fillTriangle(hx - 8 * fx, hy - 10, hx + 6 * fx, hy - 17, hx - 6 * fx, hy - 26);
+      g.fillTriangle(hx + 2 * fx, hy - 12, hx + 15 * fx, hy - 9, hx + 10 * fx, hy - 22);
+      g.fillStyle(col(f.colors.hair), 1); g.fillRect(hx - 15, hy - 14, 30, 6);
+      // Ojo decidido
+      g.fillStyle(col(0xffffff), 1); g.fillEllipse(hx + 8 * fx, hy - 1, 7, 5);
+      g.fillStyle(col(0x14306b), 1); g.fillCircle(hx + 9 * fx, hy - 1, 2);
+      g.lineStyle(2, col(0x3a2010), 1); g.lineBetween(hx + 3 * fx, hy - 6, hx + 12 * fx, hy - 5);
+    },
+    drawFront(g, f, J) {
+      const m = f.move;
+      if (!m || m.id !== 'espiral') return;
+      const r = m.t < 0.42 ? 6 + m.t * 52 : 28;
+      const hx = J.fh.x + J.facing * (r * 0.6), hy = J.fh.y;
+      g.fillStyle(0xbfe9ff, 0.25); g.fillCircle(hx, hy, r + 10);
+      g.fillStyle(0xe6f7ff, 0.8); g.fillCircle(hx, hy, r);
+      g.fillStyle(0xffffff, 1); g.fillCircle(hx, hy, r * 0.45);
+      g.lineStyle(3, 0x7fd0ff, 0.9);
+      for (let k = 0; k < 3; k++) {
+        const a = m.t * 22 + k * 2.1;
+        g.beginPath(); g.arc(hx, hy, r * (0.55 + k * 0.17), a, a + 2.2, false); g.strokePath();
+      }
+    },
+  },
+
+  // ======================= CENTELLA (ninja eléctrico) =======================
+  {
+    id: 'centella', name: 'CENTELLA', tagline: 'Ninja rayo, el más rápido',
+    colors: { suit: 0x2b2d42, accent: 0xff3fa4, head: 0xe8b98a, hair: 0xf2f2f2 },
+    alt: { suit: 0x4a3216, accent: 0x5fe3ff, head: 0xe8b98a, hair: 0xffe08a },
+    speed: 330, jump: 820, jumps: 1, stats: { VEL: 5, FUE: 3, DEF: 2, ESP: 4 },
+    passive: 'El más rápido: corre como un rayo',
+    combo: { name: 'Shuriken Eléctrico', seq: ['fwd', 'fwd', 'kick'], desc: 'Dos estrellas que paralizan un ratito' },
+    superMove: { name: 'Esfera Fantasma', desc: 'Desaparece y reaparece delante del rival' },
+    moves: {
+      punch: () => mkPunch(),
+      kick: () => mkKick({ dmg: 8 }),
+      air: () => mkAirKick(),
+      combo: () => ({
+        id: 'shurikens', pose: 'cast', dur: 0.4, windows: [],
+        update(f, s) {
+          const star = (y) => {
+            Sfx.slash();
+            s.spawnProjectile(f, { kind: 'shuriken', w: 28, h: 28, y: f.y - y, vx: 900, life: 1.2,
+              hit: { dmg: 7, kb: 90, stun: 0.8, sfx: 'zap', trauma: 0.25, hitstop: 0.06 } });
+          };
+          if (!this.a && this.t >= 0.07) { this.a = true; star(92); }
+          if (!this.b && this.t >= 0.17) { this.b = true; star(70); }
+        },
+      }),
+      super: () => castMove(0.15, 0.6, (f, s) => {
+        Sfx.blast();
+        s.spawnProjectile(f, { kind: 'ghostorb', w: 50, h: 50, y: f.y - 80, vx: 520, life: 2, teleportAt: 0.35,
+          hit: { dmg: 24, kb: 520, kbY: 380, stun: 0.8, sfx: 'kick', unblockable: true, isSuper: true, trauma: 0.7, hitstop: 0.12 } });
+      }),
+    },
+    drawTorso(g, f, J, col) {
+      const cx = lerp(J.hip.x, J.sh.x, 0.6), cy = lerp(J.hip.y, J.sh.y, 0.6);
+      g.fillStyle(col(f.colors.accent), 1);
+      g.fillPoints([{ x: cx + 2, y: cy - 11 }, { x: cx - 5, y: cy + 1 }, { x: cx, y: cy + 1 }, { x: cx - 3, y: cy + 11 }, { x: cx + 5, y: cy - 2 }, { x: cx, y: cy - 2 }], true);
+      g.lineStyle(4, col(f.colors.accent), 1);
+      g.lineBetween(J.hip.x - 13, J.hip.y - 3, J.hip.x + 13, J.hip.y - 3);
+    },
+    drawHead(g, f, J, col) {
+      const fx = J.facing, hx = J.head.x, hy = J.head.y;
+      g.fillStyle(col(f.colors.hair), 1);
+      g.fillEllipse(hx - 3 * fx, hy - 10, 30, 14);
+      g.fillTriangle(hx - 14 * fx, hy - 8, hx - 24 * fx, hy - 4, hx - 12 * fx, hy + 2);
+      // Antiparras en la frente
+      g.fillStyle(col(0x1a1a1a), 1); g.fillRect(hx - 16, hy - 9, 32, 4);
+      g.fillStyle(col(f.colors.accent), 1); g.fillCircle(hx + 7 * fx, hy - 8, 5); g.fillCircle(hx - 3 * fx, hy - 8, 4);
+      g.fillStyle(0xffffff, 0.6); g.fillCircle(hx + 6 * fx, hy - 9, 1.6);
+      g.fillStyle(col(0xffffff), 1); g.fillEllipse(hx + 8 * fx, hy + 2, 6, 4);
+      g.fillStyle(col(0x2b2d42), 1); g.fillCircle(hx + 9 * fx, hy + 2, 1.8);
+    },
+    drawFront(g, f, J) {
+      if (Math.abs(f.vx) > 200 && f.onGround && Math.random() < 0.5) {
+        g.lineStyle(2, f.colors.accent, 0.8);
+        const x = f.x - f.facing * 20, y = f.y - 30 - Math.random() * 70;
+        g.lineBetween(x, y, x - f.facing * 18, y + 6);
+      }
+    },
+  },
+
+  // ======================= ESPEJO (el que copia) =======================
+  {
+    id: 'espejo', name: 'ESPEJO', tagline: 'Copia los trucos del rival',
+    colors: { suit: 0x7d8799, accent: 0x3fd2ff, head: 0xd6dde6 },
+    alt: { suit: 0x4a3b66, accent: 0xffd23f, head: 0xe8d9b0 },
+    speed: 300, jump: 780, jumps: 1, stats: { VEL: 4, FUE: 4, DEF: 3, ESP: 4 },
+    passive: 'Ojo copiador: su combo copia el combo del rival',
+    combo: { name: 'Copia', seq: ['back', 'back', 'punch'], desc: 'Hace el combo de su rival', copies: true },
+    superMove: { name: 'Cuchilla Relámpago', desc: 'Carga un rayo en la mano y atraviesa al rival' },
+    moves: {
+      punch: () => mkPunch({ dmg: 6 }),
+      kick: () => mkKick({ dmg: 9 }),
+      air: () => mkAirKick(),
+      combo: (f, s, opp) => {
+        if (opp && opp.def.id !== 'espejo') return opp.def.moves.combo(f, s, opp);
+        return castMove(0.1, 0.36, (f2, s2) => {
+          Sfx.zap();
+          s2.spawnProjectile(f2, { kind: 'bolt', w: 44, h: 22, y: f2.y - 84, vx: 820, life: 1.3,
+            hit: { dmg: 8, kb: 220, stun: 0.45, sfx: 'zap', trauma: 0.3, hitstop: 0.06 } });
+        });
+      },
+      super: () => ({
+        id: 'cuchilla', pose: 'charge', dur: 1.05, invuln: true, keepVx: true,
+        windows: [{ from: 0.42, to: 0.72, box: { x: 0, y: 50, w: 85, h: 70 }, dmg: 26, kb: 560, kbY: 300, stun: 0.8, sfx: 'zap', unblockable: true, isSuper: true, trauma: 0.85, hitstop: 0.15 }],
+        start() { Sfx.zap(); },
+        update(f) {
+          if (this.t < 0.4) f.vx = 0;
+          else if (this.t < 0.72) { if (this.pose !== 'dash') Sfx.zap(); this.pose = 'dash'; f.vx = f.facing * 900; }
+          else { this.pose = 'punch'; f.vx = f.vx * 0.8; }
+        },
+      }),
+    },
+    drawTorso(g, f, J, col) {
+      const cx = lerp(J.hip.x, J.sh.x, 0.62), cy = lerp(J.hip.y, J.sh.y, 0.62);
+      g.lineStyle(3, col(f.colors.accent), 1);
+      g.lineBetween(cx - 6, cy - 9, cx + 3, cy - 2); g.lineBetween(cx + 3, cy - 2, cx - 3, cy + 2); g.lineBetween(cx - 3, cy + 2, cx + 6, cy + 10);
+      g.fillStyle(col(shade(f.colors.suit, 0.7)), 1); g.fillRect(J.hip.x - 14, J.hip.y - 6, 28, 6);
+    },
+    drawHead(g, f, J, col) {
+      const fx = J.facing, hx = J.head.x, hy = J.head.y;
+      // Máscara de espejo con reflejos
+      g.fillStyle(col(0xffffff), 0.55);
+      g.fillPoints([{ x: hx - 6 * fx, y: hy - 14 }, { x: hx + 2 * fx, y: hy - 14 }, { x: hx - 8 * fx, y: hy + 12 }, { x: hx - 14 * fx, y: hy + 9 }], true);
+      g.lineStyle(2, col(f.colors.accent), 1);
+      g.lineBetween(hx + 2 * fx, hy - 2, hx + 15 * fx, hy - 2);
+      g.lineStyle(2, col(shade(f.colors.head, 0.6)), 1); g.strokeCircle(hx, hy, HEAD_R);
+    },
+    drawFront(g, f, J) {
+      const m = f.move;
+      if (!m || m.id !== 'cuchilla') return;
+      const hx = J.fh.x, hy = J.fh.y, acc = f.colors.accent;
+      const r = m.t < 0.4 ? 10 + m.t * 40 : 26;
+      g.fillStyle(acc, 0.3); g.fillCircle(hx, hy, r);
+      g.fillStyle(0xffffff, 0.9); g.fillCircle(hx, hy, r * 0.35);
+      for (let k = 0; k < 6; k++) {
+        let x = hx, y = hy;
+        const a = Math.random() * Math.PI * 2;
+        g.lineStyle(k % 2 ? 2 : 3, k % 2 ? 0xffffff : acc, 1);
+        g.beginPath(); g.moveTo(x, y);
+        for (let q = 0; q < 4; q++) { x += Math.cos(a) * r * 0.5 + (Math.random() - 0.5) * 14; y += Math.sin(a) * r * 0.5 + (Math.random() - 0.5) * 14; g.lineTo(x, y); }
+        g.strokePath();
+      }
+    },
+  },
+
+  // ======================= OBSIDIANA (señor del fuego) =======================
+  {
+    id: 'obsidiana', name: 'OBSIDIANA', tagline: 'Guerrero de lava',
+    colors: { suit: 0x2a2230, accent: 0xff6a1a, head: 0x3a2f42 },
+    alt: { suit: 0x1f3a3a, accent: 0x7cff4f, head: 0x2a4a4a },
+    speed: 215, jump: 690, jumps: 1, armor: 0.8, stats: { VEL: 1, FUE: 5, DEF: 5, ESP: 5 },
+    passive: 'Armadura de roca: recibe menos daño',
+    combo: { name: 'Gran Bola de Fuego', seq: ['back', 'fwd', 'kick'], desc: 'Una bola de fuego enorme y lenta' },
+    superMove: { name: 'Lluvia de Meteoros', desc: 'Hace caer meteoros del cielo sobre el rival' },
+    moves: {
+      punch: () => mkPunch({ dmg: 7 }),
+      kick: () => mkKick({ dmg: 9 }),
+      air: () => mkAirKick(),
+      combo: () => castMove(0.18, 0.55, (f, s) => {
+        Sfx.fire();
+        s.spawnProjectile(f, { kind: 'fireball', w: 64, h: 64, y: f.y - 80, vx: 380, life: 2.6,
+          hit: { dmg: 13, kb: 340, kbY: 200, stun: 0.55, sfx: 'fire', trauma: 0.45, hitstop: 0.08 } });
+      }),
+      super: (f, s, opp) => ({
+        id: 'meteoros', pose: 'summon', dur: 1.1, invuln: true,
+        start() { Sfx.fire(); },
+        update(f2, s2) {
+          if (!this.a && this.t >= 0.25) { this.a = true; s2.spawnMeteor(f2, opp.x, true); }
+          if (!this.b && this.t >= 0.5) { this.b = true; s2.spawnMeteor(f2, opp.x - 110, false); }
+          if (!this.c && this.t >= 0.7) { this.c = true; s2.spawnMeteor(f2, opp.x + 110, false); }
+        },
+      }),
+    },
+    drawBack(g, f) {
+      // Brasas que suben
+      if (Math.random() < 0.6) {
+        g.fillStyle(f.colors.accent, 0.8);
+        g.fillCircle(f.x + (Math.random() - 0.5) * 50, f.y - Math.random() * 140, 1.5 + Math.random() * 2);
+      }
+    },
+    drawTorso(g, f, J, col) {
+      const acc = col(f.colors.accent);
+      g.lineStyle(2, acc, 0.9);
+      const a = { x: lerp(J.hip.x, J.sh.x, 0.2), y: lerp(J.hip.y, J.sh.y, 0.2) }, b = { x: lerp(J.hip.x, J.sh.x, 0.75), y: lerp(J.hip.y, J.sh.y, 0.75) };
+      g.lineBetween(a.x - 6, a.y, b.x + 4, b.y); g.lineBetween(b.x + 4, b.y, b.x - 6, b.y - 8);
+      g.lineBetween(lerp(a.x, b.x, 0.5) - 2, lerp(a.y, b.y, 0.5), lerp(a.x, b.x, 0.5) + 9, lerp(a.y, b.y, 0.5) + 4);
+      // Hombreras con púas
+      g.fillStyle(col(shade(f.colors.suit, 1.5)), 1);
+      g.fillCircle(J.sh.x, J.sh.y + 3, 14);
+      g.fillTriangle(J.sh.x - 10, J.sh.y - 6, J.sh.x - 2, J.sh.y - 6, J.sh.x - 8, J.sh.y - 18);
+      g.fillTriangle(J.sh.x + 2, J.sh.y - 6, J.sh.x + 10, J.sh.y - 6, J.sh.x + 8, J.sh.y - 18);
+    },
+    drawHead(g, f, J, col) {
+      const fx = J.facing, hx = J.head.x, hy = J.head.y, acc = col(f.colors.accent);
+      // Casco con cuernos y ranura de lava
+      g.fillStyle(acc, 1);
+      g.fillTriangle(hx - 8 * fx, hy - 10, hx - 2 * fx, hy - 13, hx - 20 * fx, hy - 30);
+      g.fillTriangle(hx + 4 * fx, hy - 13, hx + 10 * fx, hy - 9, hx + 14 * fx, hy - 30);
+      g.fillStyle(col(0x140e18), 1); g.fillRect(hx - 2 * fx - (fx < 0 ? 16 : 0), hy - 4, 17, 7);
+      g.fillStyle(acc, 1); g.fillRect(hx + (fx > 0 ? 2 : -14), hy - 2, 12, 3);
+    },
+  },
+
 ];
 
 function drawSword(g, elbow, hand, col) {

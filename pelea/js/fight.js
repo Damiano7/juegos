@@ -28,10 +28,11 @@ class FightScene extends Phaser.Scene {
     this.world = this.add.container(0, 0);
     this.stage = buildStage(this, { container: this.world });
     this.shadowG = this.add.graphics();
+    this.ghostG = this.add.graphics().setAlpha(0.6);
     this.fighterG = this.add.graphics();
     this.fxG = this.add.graphics();
     this.popLayer = this.add.container(0, 0);
-    this.world.add([this.shadowG, this.fighterG, this.fxG, this.popLayer]);
+    this.world.add([this.shadowG, this.ghostG, this.fighterG, this.fxG, this.popLayer]);
 
     this.buildHud();
     fitCamera(this, () => {
@@ -288,8 +289,34 @@ class FightScene extends Phaser.Scene {
     const facing = owner.facing;
     const proj = Object.assign({ owner, t: 0, x: owner.x + facing * 42, vy: 0, facing, hitsDone: 0 }, p);
     if (!p.absolute) proj.vx = p.vx * facing;
+    if (p.kind === 'clone') {
+      const gh = new Fighter(owner.def, owner.side, owner.colors);
+      gh.facing = facing; gh.onGround = true; gh.y = GROUND; gh.x = proj.x;
+      proj.ghost = gh;
+    }
     this.projectiles.push(proj);
     return proj;
+  }
+
+  // Meteoro de Obsidiana: cae en diagonal y explota al tocar el piso
+  spawnMeteor(owner, tx, big) {
+    const dir = tx >= owner.x ? 1 : -1;
+    const vy = 1000, vx = 170 * dir, y0 = -260;
+    const fall = (GROUND - (big ? 40 : 23) - y0) / vy;
+    const tgt = clamp(tx, ARENA.l + 40, ARENA.r - 40);
+    this.spawnProjectile(owner, { kind: 'meteor', absolute: true, big, x: tgt - vx * fall, y: y0, vx, vy, landX: tgt,
+      w: big ? 80 : 46, h: big ? 80 : 46, life: 3,
+      hit: { dmg: big ? 22 : 7, kb: big ? 380 : 180, kbY: big ? 520 : 200, stun: big ? 0.8 : 0.4, sfx: 'kick', unblockable: true, isSuper: true, trauma: big ? 0.8 : 0.35, hitstop: big ? 0.12 : 0.05 } });
+  }
+
+  explodeMeteor(p) {
+    const target = this.opponentOf(p.owner);
+    const R = p.big ? 120 : 70;
+    if (!p.hitsDone && Math.abs(target.x - p.x) < R && target.y > GROUND - 150) this.applyHit(p.owner, target, p.hit, p.x);
+    Sfx.boom();
+    this.addTrauma(p.big ? 0.7 : 0.3);
+    this.dust(p.x, p.big ? 18 : 8);
+    this.spark(p.x, GROUND - 20, p.owner.colors.accent, p.big ? 24 : 10, 420);
   }
 
   opponentOf(f) { return f === this.f1 ? this.f2 : this.f1; }
@@ -304,7 +331,7 @@ class FightScene extends Phaser.Scene {
     const hx = def.x - dir * 14, hy = hb.y + 40;
     if (blocked) {
       const chip = (def.def.blockChip === 0 && def.hasShield) ? 0 : 0.15;
-      const dmg = info.dmg * chip;
+      const dmg = info.dmg * chip * (def.def.armor || 1);
       def.hp = Math.max(1, def.hp - dmg);
       def.vx = dir * 180;
       def.power = Math.min(100, def.power + 3);
@@ -314,7 +341,8 @@ class FightScene extends Phaser.Scene {
       this.addTrauma(0.1);
       return true;
     }
-    def.hp -= info.dmg;
+    const dmgTaken = info.dmg * (def.def.armor || 1);
+    def.hp -= dmgTaken;
     def.flashT = 0.1;
     def.move = null;
     def.hurtT = info.stun || 0.3;
@@ -322,13 +350,13 @@ class FightScene extends Phaser.Scene {
     def.vx = dir * (info.kb || 0) * stuckKb;
     if (info.kbY && def.stuckT <= 0) { def.vy = -info.kbY; def.onGround = false; }
     if (info.stuckT) { def.stuckT = Math.max(def.stuckT, info.stuckT); def.vx = 0; }
-    if (!info.isSuper) att.power = Math.min(100, att.power + info.dmg * 1.6);
+    if (!info.isSuper) att.power = Math.min(100, att.power + info.dmg * 1.6 * (att.def.powerMul || 1));
     def.power = Math.min(100, def.power + info.dmg * 1.0);
     const s = info.sfx || 'punch';
     if (Sfx[s]) Sfx[s]();
     this.spark(hx, hy, 0xffe14d, info.isSuper ? 14 : 10);
     this.spark(hx, hy, 0xffffff, 5, 200);
-    this.damageNumber(def.x, hb.y - 10, info.dmg);
+    this.damageNumber(def.x, hb.y - 10, dmgTaken);
     this.hitstop = Math.max(this.hitstop, info.hitstop || 0.05);
     this.addTrauma(info.trauma || 0.2);
     if (def.hp <= 0) this.knockOut(att, def, dir);
@@ -385,6 +413,15 @@ class FightScene extends Phaser.Scene {
         }
       }
       p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.ghost) { p.ghost.x = p.x; p.ghost.vx = p.vx; p.ghost.animT += dt; }
+      if (p.teleportAt && !p.teleported && p.t >= p.teleportAt) {
+        // La esfera fantasma reaparece justo delante del rival
+        const tg = this.opponentOf(p.owner);
+        const d = tg.x >= p.owner.x ? 1 : -1;
+        p.x = tg.x - d * 90; p.y = tg.y - 80; p.vx = d * 800; p.teleported = true;
+        this.spark(p.x, p.y, p.owner.colors.accent, 14, 300);
+      }
+      if (p.kind === 'meteor' && p.y >= GROUND - p.h / 2) { p.dead = true; this.explodeMeteor(p); continue; }
       if (p.kind === 'wave' && Math.random() < 0.6) this.dust(p.x, 1);
       if (p.x < ARENA.l - 100 || p.x > ARENA.r + 100 || p.life <= 0) p.dead = true;
       if (p.dead) continue;
@@ -397,7 +434,11 @@ class FightScene extends Phaser.Scene {
         if (ok) {
           p.hitsDone++;
           if (p.boomerang) { p.hitPhase = p.returning ? 'back' : 'out'; p.returning = true; }
-          else p.dead = true;
+          else {
+            p.dead = true;
+            if (p.kind === 'clone') this.dust(p.x, 8);
+            if (p.kind === 'meteor') this.explodeMeteor(p);
+          }
         }
       }
     }
@@ -673,6 +714,8 @@ class FightScene extends Phaser.Scene {
     const order = this.f1.move && !this.f2.move ? [this.f2, this.f1] : [this.f1, this.f2];
     for (const f of order) f.draw(g, this);
 
+    const gg = this.ghostG; gg.clear();
+    for (const p of this.projectiles) if (p.ghost) p.ghost.draw(gg, this);
     const fx = this.fxG; fx.clear();
     for (const p of this.projectiles) this.drawProjectile(fx, p);
     for (const p of this.particles) {
@@ -709,6 +752,64 @@ class FightScene extends Phaser.Scene {
         g.fillStyle(c, 0.8); g.fillCircle(p.x, p.y, 15);
         g.fillStyle(0xffffff, 1); g.fillCircle(p.x, p.y, 8);
         g.fillStyle(c, 0.35); g.fillCircle(p.x - Math.sign(p.vx) * 22, p.y, 9);
+        break;
+      }
+      case 'clone': {
+        g.lineStyle(2, o.colors.accent, 0.5);
+        for (let k = 0; k < 3; k++) g.lineBetween(p.x - Math.sign(p.vx) * (30 + k * 14), p.y - 30 + k * 25, p.x - Math.sign(p.vx) * (60 + k * 14), p.y - 30 + k * 25);
+        break;
+      }
+      case 'shuriken': {
+        const a = p.t * 30, c = o.colors.accent;
+        const pts = [];
+        for (let k = 0; k < 8; k++) { const r = k % 2 ? 5 : 15; pts.push({ x: p.x + Math.cos(a + k * Math.PI / 4) * r, y: p.y + Math.sin(a + k * Math.PI / 4) * r }); }
+        g.fillStyle(0xdfe7ef, 1); g.fillPoints(pts, true);
+        g.fillStyle(c, 1); g.fillCircle(p.x, p.y, 4);
+        g.lineStyle(2, c, 0.9);
+        for (let k = 0; k < 2; k++) { const b = Math.random() * 6.28; g.lineBetween(p.x, p.y, p.x + Math.cos(b) * 20, p.y + Math.sin(b) * 20); }
+        break;
+      }
+      case 'ghostorb': {
+        const c = o.colors.accent;
+        if (p.t < 0.12 || p.teleported) {
+          g.fillStyle(c, 0.3); g.fillCircle(p.x, p.y, 34 + Math.sin(p.t * 40) * 3);
+          g.fillStyle(c, 0.85); g.fillCircle(p.x, p.y, 22);
+          g.fillStyle(0xffffff, 1); g.fillCircle(p.x, p.y, 11);
+          g.lineStyle(2, 0xffffff, 0.8);
+          g.beginPath(); g.arc(p.x, p.y, 28, p.t * 15, p.t * 15 + 2.5, false); g.strokePath();
+        } else {
+          g.lineStyle(2, c, 0.18); g.strokeCircle(p.x, p.y, 22 + Math.sin(p.t * 50) * 4);
+        }
+        break;
+      }
+      case 'bolt': {
+        const c = o.colors.accent, d = Math.sign(p.vx);
+        g.lineStyle(5, c, 0.5); g.lineStyle(3, 0xffffff, 1);
+        g.beginPath(); g.moveTo(p.x - d * 40, p.y);
+        for (let k = 1; k <= 5; k++) g.lineTo(p.x - d * 40 + d * k * 10, p.y + (k % 2 ? -8 : 8));
+        g.strokePath();
+        g.fillStyle(c, 0.5); g.fillCircle(p.x, p.y, 12);
+        break;
+      }
+      case 'fireball': {
+        const c = o.colors.accent, fl = Math.sin(p.t * 30) * 3, d = Math.sign(p.vx);
+        g.fillStyle(c, 0.25); g.fillCircle(p.x - d * 34, p.y, 22);
+        g.fillStyle(c, 0.35); g.fillCircle(p.x, p.y, 40 + fl);
+        g.fillStyle(c, 0.9); g.fillCircle(p.x, p.y, 30);
+        g.fillStyle(0xffd23f, 1); g.fillCircle(p.x + d * 4, p.y, 19);
+        g.fillStyle(0xfff6c4, 1); g.fillCircle(p.x + d * 7, p.y, 9);
+        break;
+      }
+      case 'meteor': {
+        const c = o.colors.accent, r = p.w / 2;
+        const pulse = 0.4 + Math.sin(p.t * 25) * 0.25;
+        g.fillStyle(0xff3d3d, pulse * 0.5); g.fillEllipse(p.landX, GROUND + 3, r * 3, 14);
+        g.lineStyle(2, 0xff3d3d, pulse); g.strokeEllipse(p.landX, GROUND + 3, r * 3, 14);
+        const tx = -Math.sign(p.vx) * 0.17, ty = -1;
+        for (let k = 3; k >= 1; k--) { g.fillStyle(k === 1 ? 0xffd23f : c, 0.35 + 0.15 * (3 - k)); g.fillCircle(p.x + tx * r * k * 1.2, p.y + ty * r * k * 1.2, r * (1 - k * 0.18)); }
+        g.fillStyle(0x3a2a2a, 1); g.fillCircle(p.x, p.y, r * 0.8);
+        g.lineStyle(3, c, 1); g.strokeCircle(p.x, p.y, r * 0.8);
+        g.fillStyle(c, 0.9); g.fillCircle(p.x - r * 0.25, p.y - r * 0.2, r * 0.15); g.fillCircle(p.x + r * 0.3, p.y + r * 0.1, r * 0.1);
         break;
       }
       case 'shield':

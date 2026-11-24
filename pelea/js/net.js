@@ -1,6 +1,7 @@
 // Conexión con el servidor online.
 // Las dos computadoras calculan la misma pelea; por internet solo viajan las teclas.
 const NET_PROTO = 1;      // tiene que coincidir con el servidor
+const GAME_BUILD = 3;     // versión del juego: los dos jugadores tienen que tener la misma
 const INPUT_DELAY = 4;    // cuadros de retraso (4/60 s ≈ 67 ms): da tiempo a que lleguen las teclas del otro
 
 // Teclas → número (7 "apretadas ahora" + 7 "recién apretadas")
@@ -96,7 +97,9 @@ const Net = {
       case 'match':
         this.status = 'matched'; this.side = m.side;
         this.rival = { cur: m.side === 0 ? 3 : 0, locked: false, again: false, left: false };
+        this.send({ t: 'chat', ver: GAME_BUILD });
         break;
+      case 'chat': if (m.ver !== undefined) this.rival.ver = m.ver; break;
       case 'error': this.fail(m.msg === 'version' ? 'version' : 'server'); return;
       case 'pong': this.ping = Math.round(performance.now() - m.ts); return;
       case 'left': this.rival.left = true; break;

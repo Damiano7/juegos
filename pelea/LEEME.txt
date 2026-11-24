@@ -24,15 +24,15 @@ CONTROLES
   Pausa: ESC   ·   Sonido on/off: M   ·   También funcionan joysticks USB.
   El juego ocupa toda la ventana, sea del tamaño que sea.
 
-HÉROES (→ = hacia el rival)
-  ARÁCNIDO    Doble salto.            Combo ↓ → GOLPE: Disparo de Red (deja pegado al rival)
-                                      Súper: Red Gigante
-  DOBLE FILO  Se cura solo.           Combo → → GOLPE: Corte Veloz
-                                      Súper: Tornado de Espadas
-  PROTÓN      Vuela (mantener ↑).     Combo ↓ → PATADA: Pulso de Energía
-                                      Súper: Rayo Protónico
-  CENTINELA   Bloqueo perfecto.       Combo ← → GOLPE: Escudo Bumerán
-                                      Súper: Golpe Sísmico
+HÉROES (→ = hacia el rival; combos en modo 1 jugador: ↓ ← → con flechas y A S en lugar de golpe/patada)
+  ARÁCNIDO    Doble salto.             Combo ↓ → GOLPE: Disparo de Red        Súper: Red Gigante
+  DOBLE FILO  Se cura solo.            Combo → → GOLPE: Corte Veloz           Súper: Tornado de Espadas
+  PROTÓN      Vuela (mantener ↑).      Combo ↓ → PATADA: Pulso de Energía     Súper: Rayo Protónico
+  CENTINELA   Bloqueo perfecto.        Combo ← → GOLPE: Escudo Bumerán        Súper: Golpe Sísmico
+  REMOLINO    Llena el súper rápido.   Combo ↓ ↓ GOLPE: Clones de Sombra      Súper: Esfera Espiral
+  CENTELLA    El más rápido.           Combo → → PATADA: Shuriken Eléctrico   Súper: Esfera Fantasma
+  ESPEJO      Copia al rival.          Combo ← ← GOLPE: copia el combo rival  Súper: Cuchilla Relámpago
+  OBSIDIANA   Recibe menos daño.       Combo ← → PATADA: Gran Bola de Fuego   Súper: Lluvia de Meteoros
 
 La barra de PODER se llena pegando y recibiendo golpes. Cuando está llena, apretá Súper.
 Se gana al mejor de 3 rounds.
