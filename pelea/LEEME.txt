@@ -42,6 +42,8 @@ MODO ONLINE
   Cada uno juega con flechas + A S D. Al final, si los dos aceptan, hay revancha.
   La dirección del servidor está en js/online-config.js.
   Para probarlo con un servidor en tu propia PC: index.html?server=ws://localhost:8787
+  Durante una pelea online: N muestra el medidor de red, L descarga un informe de lag.
+  Retraso de teclas para probar: agregar ?delay=6 a la dirección (se usa el mayor de los dos).
 
 PARA TOCAR COSAS (archivos en la carpeta js/)
 - characters.js : cada héroe. "speed" = velocidad, "jump" = salto, "dmg" = daño,

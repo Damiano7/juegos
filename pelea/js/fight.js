@@ -453,6 +453,7 @@ class FightScene extends Phaser.Scene {
   // de 1/60 s (así dos computadoras calculan exactamente lo mismo en el modo online).
   update(time, delta) {
     const realDt = Math.min(delta / 1000, 0.1);
+    if (this.net && delta > 100) { NetStats.hitches++; NetStats.hitchMax = Math.max(NetStats.hitchMax, delta); NetStats.event('trabon_pc', delta); }
     this.stage.update(time);
     this.updateShake(realDt);
     this.updateParticles(realDt);
@@ -490,8 +491,17 @@ class FightScene extends Phaser.Scene {
     if (!Net.inputs.has(g)) Net.inputs.set(g, new Map());
     this.remoteIn = Net.inputs.get(g);
     this.localIn = new Map();
-    for (let f = 0; f < INPUT_DELAY; f++) { this.localIn.set(f, 0); if (!this.remoteIn.has(f)) this.remoteIn.set(f, 0); }
-    this.nextLocal = INPUT_DELAY;
+    this.D = Net.delay; // retraso acordado con el rival (el mayor de los dos)
+    for (let f = 0; f < this.D; f++) { this.localIn.set(f, 0); if (!this.remoteIn.has(f)) this.remoteIn.set(f, 0); }
+    this.nextLocal = this.D;
+    this.stallStart = 0;
+    this.netPanelOn = false;
+    this.netPanelT = 0;
+    this.netPanelG = this.add.graphics().setDepth(29).setVisible(false);
+    this.netPanel = uiText(this, 0, 0, '', 14, '#ffffff', { oy: 0, lineSpacing: 3 }).setDepth(30).setVisible(false);
+    const K = Phaser.Input.Keyboard.KeyCodes;
+    this.input.keyboard.addKey(K.N).on('down', () => { this.netPanelOn = !this.netPanelOn; this.netPanelT = 0; });
+    this.input.keyboard.addKey(K.L).on('down', () => downloadNetReport(this));
     this.stallT = 0;
     this.mySums = new Map();
     this.wantAgain = false;
@@ -519,7 +529,7 @@ class FightScene extends Phaser.Scene {
     let stepped = 0;
     while (this.acc >= STEP && stepped < 5) {
       // Mis teclas para dentro de INPUT_DELAY cuadros: se guardan y se mandan al rival
-      while (this.nextLocal <= this.frame + INPUT_DELAY) {
+      while (this.nextLocal <= this.frame + this.D) {
         const b = encodeIntent(this.c1.update());
         this.localIn.set(this.nextLocal, b);
         Net.send({ t: 'in', g, f: this.nextLocal, b });
@@ -538,7 +548,21 @@ class FightScene extends Phaser.Scene {
         Net.send({ t: 'sum', g, f: this.frame, h });
       }
     }
-    if (stepped === 0 && this.acc >= STEP) { this.stallT += realDt; this.acc = Math.min(this.acc, STEP * 2); } else if (stepped > 0) this.stallT = 0;
+    if (stepped === 0 && this.acc >= STEP) {
+      this.stallT += realDt; this.acc = Math.min(this.acc, STEP * 2);
+      if (!this.stallStart) { this.stallStart = performance.now(); this.stallFrame = this.frame; }
+    } else if (stepped > 0) {
+      this.stallT = 0;
+      if (this.stallStart) {
+        const ms = performance.now() - this.stallStart;
+        if (ms > 50) {
+          NetStats.stalls++; NetStats.stallTotal += ms; NetStats.stallMax = Math.max(NetStats.stallMax, ms);
+          NetStats.event('pausa_por_lag', ms, { cuadro: this.stallFrame });
+        }
+        this.stallStart = 0;
+      }
+    }
+    this.updateNetPanel(realDt);
 
     // Control de que las dos computadoras ven lo mismo
     for (const [f, h] of this.mySums) {
@@ -566,7 +590,34 @@ class FightScene extends Phaser.Scene {
     if (this.escT > 0) msg = 'Apretá ESC otra vez para abandonar';
     if (this.phase === 'end') msg = this.wantAgain ? (Net.rival.again ? '' : 'Esperando que tu rival acepte la revancha…') : (Net.rival.again ? '¡Tu rival quiere la revancha!' : '');
     if (this.netMsg.text !== msg) this.netMsg.setText(msg);
-    this.pingLabel.setText(Net.ping ? 'PING ' + Net.ping + ' ms' + (this.desync ? '  ⚠' : '') : '');
+    this.pingLabel.setText(Net.ping ? 'PING ' + Net.ping + ' ms' + (this.desync ? '  ⚠' : '') + '   ·   N: red' : '');
+  }
+
+  // Panel con las mediciones de red (tecla N)
+  updateNetPanel(dt) {
+    const on = this.netPanelOn;
+    this.netPanel.setVisible(on); this.netPanelG.setVisible(on);
+    if (!on) return;
+    this.netPanelT -= dt;
+    if (this.netPanelT > 0) return;
+    this.netPanelT = 0.25;
+    const S = NetStats, sp = S.window(S.srvPings, 10), rp = S.window(S.rivalPings, 10);
+    const lines = [
+      'RED   (N ocultar  ·  L descargar informe)',
+      `Ping al servidor: ${Net.ping} ms   (máx 10 s: ${sp.max})`,
+      `Ping al rival: ${rp.avg} ms   (máx 10 s: ${rp.max})`,
+      `Retraso de teclas: ${this.D} cuadros (${Math.round(this.D * 1000 / 60)} ms)`,
+      `Pausas por lag: ${S.stalls}  ·  total ${(S.stallTotal / 1000).toFixed(1)} s  ·  peor ${Math.round(S.stallMax)} ms`,
+      `Huecos sin teclas del rival: ${S.gaps}  ·  peor ${Math.round(S.gapMax)} ms`,
+      `FPS: esta PC ${Math.round(this.game.loop.actualFps)}  ·  rival ${S.rivalFps || '?'}`,
+      `Trabones de esta PC: ${S.hitches}  ·  peor ${Math.round(S.hitchMax)} ms`,
+    ];
+    this.netPanel.setText(lines.join('\n'));
+    const x = VIEW.l + 16, y = 116;
+    this.netPanel.setPosition(x + 10, y + 8);
+    const g = this.netPanelG; g.clear();
+    g.fillStyle(0x05020f, 0.82); g.fillRoundedRect(x, y, this.netPanel.width + 20, this.netPanel.height + 16, 8);
+    g.lineStyle(2, COL.p2, 0.8); g.strokeRoundedRect(x, y, this.netPanel.width + 20, this.netPanel.height + 16, 8);
   }
 
   netGone(why) {
@@ -653,6 +704,7 @@ class FightScene extends Phaser.Scene {
   }
 
   showEnd(winner) {
+    if (this.net) console.log('Informe de red:', netReport(this).resumen);
     this.phase = 'end';
     this.phaseT = 0;
     winner.victory = true;

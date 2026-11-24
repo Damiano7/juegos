@@ -17,3 +17,17 @@ VER SI ANDA:
   En el navegador: https://server.delegacionesbahia.com   → "Servidor ... funcionando"
   En la VPS:       sudo systemctl status heroes-online
   Ver registros:   sudo journalctl -u heroes-online -n 50
+
+DIAGNÓSTICO DE LAG
+  https://server.delegacionesbahia.com/stats  → muestra si el servidor se trabó (falta de CPU en la VPS),
+  la carga de la VPS y el ping de cada jugador conectado.
+  Registros en vivo:  sudo journalctl -u heroes-online -f
+    "el servidor se trabó X ms" = problema de la VPS
+    "ping alto X ms"            = problema de internet del jugador (o la ruta hasta la VPS)
+
+PRUEBA EN LA RED DE TU CASA (sin VPS ni internet de por medio)
+  En una PC con Node.js instalado, dentro de esta carpeta:
+    npm install
+    set HOST=0.0.0.0&& node server.js          (en el Símbolo del sistema de Windows)
+  Y en las dos PCs abrir (con XAMPP prendido en la primera):
+    http://IP-DE-ESA-PC/juegos/pelea/?server=ws://IP-DE-ESA-PC:8787
