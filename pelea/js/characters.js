@@ -40,12 +40,12 @@ const CHARACTERS = [
   // ======================= ARÁCNIDO (SPIDER-MAN) =======================
   {
     id: 'aracnido', name: 'SPIDER-MAN', tagline: 'El superhéroe arácnido',
-    colors: { suit: 0xc02026, accent: 0x1b4ed8, head: 0xc02026 },
-    alt: { suit: 0x181820, accent: 0xffffff, head: 0x181820 },
+    colors: { suit: 0xc81e28, accent: 0x194896, head: 0xc81e28 },
+    alt: { suit: 0x16161d, accent: 0xffffff, head: 0x16161d },
     speed: 310, jump: 830, jumps: 2, stats: { VEL: 5, FUE: 2, DEF: 2, ESP: 4 },
     passive: 'Doble salto (tocá ↑ dos veces)',
-    combo: { name: 'Disparo de Red', seq: ['down', 'fwd', 'punch'], label: '↓  →  GOLPE', desc: 'Pega al rival en el lugar' },
-    superMove: { name: 'Red Gigante', desc: 'Una red enorme que lo deja atrapado' },
+    combo: { name: 'Disparo de Red', seq: ['down', 'fwd', 'punch'], label: '↓  →  GOLPE', desc: 'Pega al rival en el lugar con su telaraña' },
+    superMove: { name: 'Red Gigante', desc: 'Una red enorme que atrapa e inmoviliza al rival' },
     moves: {
       punch: () => mkPunch({ dmg: 6 }),
       kick: () => mkKick({ dmg: 8 }),
@@ -80,27 +80,42 @@ const CHARACTERS = [
       g.lineBetween(J.hip.x - 12, J.hip.y - 4, J.hip.x + 12, J.hip.y - 4);
     },
     drawHead(g, f, J, col) {
-      const fx = J.facing;
-      const hx = J.head.x, hy = J.head.y;
-      // Gran ojo de Spider-Man (borde negro y centro blanco)
-      g.fillStyle(col(0x111111), 1);
-      g.fillTriangle(hx + 1 * fx, hy + 4, hx + 15 * fx, hy - 4, hx + 13 * fx, hy + 7);
-      g.fillStyle(col(0xffffff), 1);
-      g.fillTriangle(hx + 3 * fx, hy + 3, hx + 13 * fx, hy - 2, hx + 12 * fx, hy + 5);
-      g.lineStyle(1.5, col(0x111111), 0.8);
+      const fx = J.facing || 1, hx = J.head.x, hy = J.head.y;
+      // Base roja
+      g.fillStyle(col(0xc81e28), 1);
+      g.fillCircle(hx, hy, HEAD_R);
+      // Red de telarañas en la máscara
+      g.lineStyle(1.2, col(0x111111), 0.65);
+      g.lineBetween(hx, hy - HEAD_R, hx, hy + HEAD_R);
+      g.lineBetween(hx - HEAD_R, hy, hx + HEAD_R, hy);
+      g.lineBetween(hx - 10, hy - 10, hx + 10, hy + 10);
+      g.lineBetween(hx - 10, hy + 10, hx + 10, hy - 10);
+      g.strokeCircle(hx, hy, 5);
+      g.strokeCircle(hx, hy, 10);
       g.strokeCircle(hx, hy, HEAD_R);
+      // Ojos de Spider-Man (grandes, angulares y con marco negro grueso)
+      // Ojo frontal (hacia donde mira)
+      g.fillStyle(col(0x111111), 1);
+      g.fillTriangle(hx + 1 * fx, hy + 5, hx + 10 * fx, hy - 6, hx + 11 * fx, hy + 3);
+      g.fillStyle(col(0xffffff), 1);
+      g.fillTriangle(hx + 2 * fx, hy + 4, hx + 9 * fx, hy - 4, hx + 10 * fx, hy + 2);
+      // Ojo trasero en perspectiva
+      g.fillStyle(col(0x111111), 1);
+      g.fillTriangle(hx - 2 * fx, hy + 5, hx - 8 * fx, hy - 5, hx - 9 * fx, hy + 2);
+      g.fillStyle(col(0xffffff), 1);
+      g.fillTriangle(hx - 3 * fx, hy + 4, hx - 7 * fx, hy - 3, hx - 8 * fx, hy + 1);
     },
   },
 
-  // ======================= DOBLE FILO =======================
+  // ======================= DEADPOOL (DOBLE FILO) =======================
   {
-    id: 'doblefilo', name: 'DOBLE FILO', tagline: 'Espadachín que se cura solo',
-    colors: { suit: 0x4b5563, accent: 0xff8a1f, head: 0x3a414d },
-    alt: { suit: 0x5b2c2c, accent: 0xffd23f, head: 0x4a2222 },
+    id: 'doblefilo', name: 'DEADPOOL', tagline: 'El mercenario bocazas',
+    colors: { suit: 0xb81818, accent: 0x1a1a1a, head: 0xb81818 },
+    alt: { suit: 0x3e4248, accent: 0x141414, head: 0x3e4248 },
     speed: 285, jump: 770, jumps: 1, regen: 6, stats: { VEL: 4, FUE: 4, DEF: 2, ESP: 4 },
-    passive: 'Se cura solo de a poquito',
-    combo: { name: 'Corte Veloz', seq: ['fwd', 'fwd', 'punch'], label: '→  →  GOLPE', desc: 'Cruza la pantalla cortando' },
-    superMove: { name: 'Tornado de Espadas', desc: 'Gira como un remolino de filos' },
+    passive: 'Factor curativo (se regenera solo)',
+    combo: { name: 'Corte de Katana', seq: ['fwd', 'fwd', 'punch'], label: '→  →  GOLPE', desc: 'Arremete cortando con sus dos katanas' },
+    superMove: { name: 'Tornado Asesino', desc: 'Gira a toda velocidad rebanando con sus katanas' },
     moves: {
       punch: () => mkPunch({ pose: 'slash', reach: 14, dmg: 6, sfx: 'slash' }),
       kick: () => mkKick(),
@@ -112,7 +127,7 @@ const CHARACTERS = [
         update(f, s) {
           f.vy = 0;
           f.vx = this.t < 0.3 ? f.facing * 760 : f.vx * 0.85;
-          if (Math.random() < 0.6) s.spark(f.x - f.facing * 20, f.y - 70, f.colors.accent, 1);
+          if (Math.random() < 0.6) s.spark(f.x - f.facing * 20, f.y - 70, 0xb81818, 1);
         },
       }),
       super: () => ({
@@ -128,36 +143,68 @@ const CHARACTERS = [
       }),
     },
     drawBack(g, f, J, col) {
-      // Cintas de la bandana flameando
+      // Dos katanas cruzadas en la espalda (vaina negra con mango rojo)
       const fx = J.facing;
-      const wave = Math.sin(f.animT * 10) * 5;
-      g.lineStyle(5, col(f.colors.accent), 1);
-      g.lineBetween(J.head.x - 10 * fx, J.head.y - 6, J.head.x - 30 * fx, J.head.y + wave);
-      g.lineBetween(J.head.x - 10 * fx, J.head.y - 4, J.head.x - 26 * fx, J.head.y + 10 - wave);
-      // Espadas en la espalda (si no las está usando)
       const m = f.move;
       if (!m || (m.pose !== 'slash' && m.pose !== 'dash' && m.pose !== 'spin')) {
-        g.lineStyle(4, col(0xdfe7ef), 1);
-        g.lineBetween(J.sh.x - 22 * fx, J.sh.y - 28, J.hip.x + 14 * fx, J.hip.y + 6);
-        g.lineBetween(J.sh.x - 4 * fx, J.sh.y - 32, J.hip.x + 24 * fx, J.hip.y - 2);
-        g.lineStyle(5, col(0x222222), 1);
-        g.lineBetween(J.sh.x - 22 * fx, J.sh.y - 28, J.sh.x - 16 * fx, J.sh.y - 18);
-        g.lineBetween(J.sh.x - 4 * fx, J.sh.y - 32, J.sh.x + 0 * fx, J.sh.y - 22);
+        g.lineStyle(5, col(0x181818), 1);
+        g.lineBetween(J.sh.x - 20 * fx, J.sh.y - 26, J.hip.x + 14 * fx, J.hip.y + 10);
+        g.lineBetween(J.sh.x - 4 * fx, J.sh.y - 28, J.hip.x + 22 * fx, J.hip.y + 4);
+        // Mangos de las katanas
+        g.lineStyle(4, col(0xb81818), 1);
+        g.lineBetween(J.sh.x - 20 * fx, J.sh.y - 26, J.sh.x - 28 * fx, J.sh.y - 36);
+        g.lineBetween(J.sh.x - 4 * fx, J.sh.y - 28, J.sh.x - 10 * fx, J.sh.y - 38);
+        g.lineStyle(2, col(0x181818), 1);
+        g.strokeCircle(J.sh.x - 28 * fx, J.sh.y - 36, 2);
+        g.strokeCircle(J.sh.x - 10 * fx, J.sh.y - 38, 2);
       }
     },
     drawTorso(g, f, J, col) {
-      // Cinturón y correa cruzada
-      g.lineStyle(6, col(f.colors.accent), 1);
+      const fx = J.facing;
+      // Paneles negros laterales en el torso
+      g.fillStyle(col(0x181818), 1);
+      g.fillPoints([
+        { x: J.sh.x - 10 * fx, y: J.sh.y + 2 },
+        { x: J.sh.x - 4 * fx, y: J.sh.y + 2 },
+        { x: J.hip.x - 3 * fx, y: J.hip.y - 6 },
+        { x: J.hip.x - 11 * fx, y: J.hip.y - 6 }
+      ], true);
+      // Arnés táctico negro en el pecho
+      g.lineStyle(3, col(0x181818), 1);
+      g.lineBetween(J.sh.x - 8 * fx, J.sh.y + 1, J.hip.x + 7 * fx, J.hip.y - 5);
+      // Cinturón marrón con cartucheras
+      g.lineStyle(6, col(0x52331b), 1);
       g.lineBetween(J.hip.x - 13, J.hip.y - 3, J.hip.x + 13, J.hip.y - 3);
-      g.lineStyle(4, col(0x2a2f38), 1);
-      g.lineBetween(J.sh.x - 10 * J.facing, J.sh.y + 2, J.hip.x + 10 * J.facing, J.hip.y - 6);
+      // Hebilla redonda de Deadpool
+      g.fillStyle(col(0xb81818), 1);
+      g.fillCircle(J.hip.x, J.hip.y - 3, 5);
+      g.fillStyle(col(0x181818), 1);
+      g.fillCircle(J.hip.x - 2, J.hip.y - 3, 3);
+      g.fillCircle(J.hip.x + 2, J.hip.y - 3, 3);
+      g.fillStyle(col(0xffffff), 1);
+      g.fillCircle(J.hip.x - 2, J.hip.y - 3, 1);
+      g.fillCircle(J.hip.x + 2, J.hip.y - 3, 1);
     },
     drawHead(g, f, J, col) {
-      const fx = J.facing;
-      g.fillStyle(col(f.colors.accent), 1);
-      g.fillRect(J.head.x - HEAD_R, J.head.y - 9, HEAD_R * 2, 6); // bandana
+      const fx = J.facing || 1, hx = J.head.x, hy = J.head.y;
+      // Base roja
+      g.fillStyle(col(f.colors.head), 1);
+      g.fillCircle(hx, hy, HEAD_R);
+      // Los parches negros icónicos de Deadpool
+      g.fillStyle(col(0x181818), 1);
+      g.fillEllipse(hx + 5 * fx, hy, 10, 15);
+      g.fillEllipse(hx - 5 * fx, hy, 8, 13);
+      // Ojos blancos expresivos
       g.fillStyle(col(0xffffff), 1);
-      g.fillTriangle(J.head.x + 2 * fx, J.head.y, J.head.x + 13 * fx, J.head.y - 1, J.head.x + 11 * fx, J.head.y + 4);
+      // Ojo frontal (triangular/almendrado)
+      g.fillTriangle(hx + 2 * fx, hy + 2, hx + 8 * fx, hy - 2, hx + 8 * fx, hy + 2);
+      // Ojo trasero (entrecerrado clásico de Deadpool)
+      g.fillRect(hx - 8 * fx - (fx < 0 ? 4 : 0), hy, 5, 2);
+      // Puntera de tela detrás de la máscara
+      g.fillStyle(col(f.colors.head), 1);
+      g.fillTriangle(hx - 9 * fx, hy - 9, hx - 16 * fx, hy - 14, hx - 6 * fx, hy - 13);
+      g.lineStyle(1.5, col(0x181818), 0.8);
+      g.strokeCircle(hx, hy, HEAD_R);
     },
     drawBackHand(g, f, J, col) {
       if (f.move && f.move.pose === 'spin') drawSword(g, J.be, J.bh, col);
@@ -166,22 +213,23 @@ const CHARACTERS = [
       const m = f.move;
       if (m && (m.pose === 'slash' || m.pose === 'dash' || m.pose === 'spin')) drawSword(g, J.fe, J.fh, col);
       if (m && m.pose === 'spin') {
-        g.lineStyle(3, 0xffffff, 0.5);
+        g.lineStyle(3, 0xff2222, 0.6);
         g.strokeEllipse(f.x, f.y - 70, 150, 50);
+        g.lineStyle(2, 0xffffff, 0.8);
         g.strokeEllipse(f.x, f.y - 40, 130, 40);
       }
     },
   },
 
-  // ======================= PROTÓN =======================
+  // ======================= IRON MAN (PROTÓN) =======================
   {
-    id: 'proton', name: 'PROTÓN', tagline: 'Armadura que vuela',
-    colors: { suit: 0xb8c4d0, accent: 0x18d3c5, head: 0x9aa7b4 },
-    alt: { suit: 0x3d3d46, accent: 0xb66dff, head: 0x2c2c33 },
+    id: 'proton', name: 'IRON MAN', tagline: 'El Hombre de Hierro',
+    colors: { suit: 0x9e1313, accent: 0xf5b81b, head: 0x9e1313 },
+    alt: { suit: 0x7c8894, accent: 0x222a33, head: 0x7c8894 },
     speed: 260, jump: 750, jumps: 1, fuel: 1.4, stats: { VEL: 2, FUE: 3, DEF: 3, ESP: 5 },
-    passive: 'Vuela: mantené ↑ en el aire',
-    combo: { name: 'Pulso de Energía', seq: ['down', 'fwd', 'kick'], label: '↓  →  PATADA', desc: 'Dispara una bola de energía' },
-    superMove: { name: 'Rayo Protónico', desc: 'Un rayo láser que cruza toda la pantalla' },
+    passive: 'Propulsores: mantené ↑ en el aire para volar',
+    combo: { name: 'Disparo Repulsor', seq: ['down', 'fwd', 'kick'], label: '↓  →  PATADA', desc: 'Dispara una ráfaga de energía desde el guantelete' },
+    superMove: { name: 'Unirrayo del Pecho', desc: 'Descarga un colosal rayo láser desde su reactor arc' },
     moves: {
       punch: () => mkPunch({ reach: 10, dmg: 6 }),
       kick: () => mkKick(),
@@ -206,67 +254,86 @@ const CHARACTERS = [
     },
     drawTorso(g, f, J, col) {
       const cx = lerp(J.hip.x, J.sh.x, 0.62), cy = lerp(J.hip.y, J.sh.y, 0.62);
-      // Núcleo hexagonal
-      const pts = [];
-      for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + Math.PI / 6; pts.push({ x: cx + Math.cos(a) * 8, y: cy + Math.sin(a) * 8 }); }
-      g.fillStyle(col(0x2b3440), 1); g.fillCircle(cx, cy, 11);
-      g.fillStyle(col(f.colors.accent), 0.95); g.fillPoints(pts, true);
-      g.fillStyle(0xffffff, 0.8); g.fillCircle(cx, cy, 3);
-      // Hombreras
-      g.fillStyle(col(shade(f.colors.suit, 1.15)), 1);
+      // Hombreras doradas
+      g.fillStyle(col(f.colors.accent), 1);
       g.fillCircle(J.sh.x, J.sh.y + 2, 13);
-      // Placas
-      g.lineStyle(2, col(shade(f.colors.suit, 0.7)), 1);
-      g.lineBetween(J.hip.x - 12, J.hip.y - 10, J.hip.x + 12, J.hip.y - 10);
+      // Placas doradas en la cintura
+      g.fillStyle(col(f.colors.accent), 0.9);
+      g.fillRect(J.hip.x - 10, J.hip.y - 8, 20, 5);
+      // Reactor Arc circular brillante en el centro del pecho
+      g.fillStyle(col(0x1a2430), 1);
+      g.fillCircle(cx, cy, 11);
+      g.fillStyle(col(0x00f0ff), 1);
+      g.fillCircle(cx, cy, 8);
+      g.fillStyle(0xffffff, 0.95);
+      g.fillCircle(cx, cy, 4);
+      g.lineStyle(1.5, col(0x00f0ff), 0.8);
+      g.strokeCircle(cx, cy, 11);
     },
     drawHead(g, f, J, col) {
-      const fx = J.facing;
-      g.fillStyle(col(0x1d2530), 1);
-      g.fillRect(J.head.x - 2 * fx - (fx < 0 ? 16 : 0), J.head.y - 6, 16, 8);
+      const fx = J.facing || 1, hx = J.head.x, hy = J.head.y;
+      // Casco rojo base
+      g.fillStyle(col(f.colors.head), 1);
+      g.fillCircle(hx, hy, HEAD_R);
+      // Placa frontal dorada de Iron Man
       g.fillStyle(col(f.colors.accent), 1);
-      g.fillRect(J.head.x - (fx < 0 ? 15 : -1), J.head.y - 4, 14, 4);
-      g.fillStyle(col(shade(f.colors.suit, 1.2)), 1);
-      g.fillTriangle(J.head.x - 6, J.head.y - HEAD_R + 1, J.head.x + 6, J.head.y - HEAD_R + 1, J.head.x, J.head.y - HEAD_R - 6);
+      g.fillPoints([
+        { x: hx - 4 * fx, y: hy - 11 },
+        { x: hx + 8 * fx, y: hy - 11 },
+        { x: hx + 12 * fx, y: hy - 3 },
+        { x: hx + 8 * fx, y: hy + 8 },
+        { x: hx - 2 * fx, y: hy + 10 },
+        { x: hx - 6 * fx, y: hy + 2 }
+      ], true);
+      // Ojos rasgados luminosos cian / blanco
+      g.fillStyle(col(0x00f0ff), 1);
+      g.fillRect(hx + (fx > 0 ? 1 : -9), hy - 3, 9, 3);
+      g.fillStyle(0xffffff, 0.95);
+      g.fillRect(hx + (fx > 0 ? 2 : -8), hy - 2.5, 7, 1.8);
+      g.lineStyle(1.5, col(shade(f.colors.suit, 0.6)), 0.9);
+      g.strokeCircle(hx, hy, HEAD_R);
     },
     drawFront(g, f, J, col) {
-      // Fuego de los propulsores
+      // Llamas de propulsores en botas al volar
       if (f.jetting || (!f.onGround && f.move && f.move.id === 'laser')) {
         for (const foot of [J.ff, J.bf]) {
-          const len = 18 + Math.random() * 14;
-          g.fillStyle(0xffb020, 0.9); g.fillTriangle(foot.x - 6, foot.y + 4, foot.x + 6, foot.y + 4, foot.x, foot.y + 4 + len);
-          g.fillStyle(0xffffff, 0.9); g.fillTriangle(foot.x - 3, foot.y + 4, foot.x + 3, foot.y + 4, foot.x, foot.y + 4 + len * 0.5);
+          const len = 20 + Math.random() * 16;
+          g.fillStyle(0x00e5ff, 0.8);
+          g.fillTriangle(foot.x - 7, foot.y + 4, foot.x + 7, foot.y + 4, foot.x, foot.y + 4 + len);
+          g.fillStyle(0xffffff, 0.95);
+          g.fillTriangle(foot.x - 3, foot.y + 4, foot.x + 3, foot.y + 4, foot.x, foot.y + 4 + len * 0.5);
         }
       }
-      // Rayo del súper
+      // Rayo láser de pecho (Unibeam)
       const m = f.move;
       if (m && m.id === 'laser') {
         const hx = (J.fh.x + J.bh.x) / 2, hy = (J.fh.y + J.bh.y) / 2;
         if (m.t < 0.32) {
-          const r = 6 + m.t * 60;
-          g.fillStyle(f.colors.accent, 0.4); g.fillCircle(hx, hy, r);
-          g.fillStyle(0xffffff, 0.9); g.fillCircle(hx, hy, r * 0.45);
+          const r = 8 + m.t * 60;
+          g.fillStyle(0x00f0ff, 0.4); g.fillCircle(hx, hy, r);
+          g.fillStyle(0xffffff, 0.95); g.fillCircle(hx, hy, r * 0.45);
         } else if (m.t < 1.45) {
           const endX = f.facing > 0 ? VIEW.r + 40 : VIEW.l - 40;
           const wob = Math.sin(m.t * 60) * 4;
           const y = f.y - 83;
-          g.fillStyle(f.colors.accent, 0.35); g.fillRect(Math.min(hx, endX), y - 30 - wob, Math.abs(endX - hx), 60 + wob * 2);
-          g.fillStyle(f.colors.accent, 0.8); g.fillRect(Math.min(hx, endX), y - 17, Math.abs(endX - hx), 34);
-          g.fillStyle(0xffffff, 1); g.fillRect(Math.min(hx, endX), y - 7, Math.abs(endX - hx), 14);
-          g.fillStyle(0xffffff, 0.9); g.fillCircle(hx, y, 22 + wob);
+          g.fillStyle(0x00f0ff, 0.35); g.fillRect(Math.min(hx, endX), y - 30 - wob, Math.abs(endX - hx), 60 + wob * 2);
+          g.fillStyle(0x00f0ff, 0.85); g.fillRect(Math.min(hx, endX), y - 18, Math.abs(endX - hx), 36);
+          g.fillStyle(0xffffff, 1); g.fillRect(Math.min(hx, endX), y - 8, Math.abs(endX - hx), 16);
+          g.fillStyle(0xffffff, 0.95); g.fillCircle(hx, y, 24 + wob);
         }
       }
     },
   },
 
-  // ======================= CENTINELA =======================
+  // ======================= CAPITÁN AMÉRICA (CENTINELA) =======================
   {
-    id: 'centinela', name: 'CENTINELA', tagline: 'Defensor del escudo',
-    colors: { suit: 0x2f6b3a, accent: 0xc98b2b, head: 0xc98b2b },
-    alt: { suit: 0x6b2f5c, accent: 0xb9c3cc, head: 0xb9c3cc },
+    id: 'centinela', name: 'CAPITÁN AMÉRICA', tagline: 'El Primer Vengador',
+    colors: { suit: 0x194896, accent: 0xc82020, head: 0x194896 },
+    alt: { suit: 0x1d2733, accent: 0x8294a6, head: 0x1d2733 },
     speed: 245, jump: 740, jumps: 1, blockChip: 0, stats: { VEL: 2, FUE: 3, DEF: 5, ESP: 4 },
-    passive: 'Con escudo, bloquear no le quita vida',
-    combo: { name: 'Escudo Bumerán', seq: ['back', 'fwd', 'punch'], label: '←  →  GOLPE', desc: 'Tira el escudo y vuelve' },
-    superMove: { name: 'Golpe Sísmico', desc: 'Salta y hace temblar el piso' },
+    passive: 'Escudo de Vibranium: bloquear no consume vida',
+    combo: { name: 'Lanzamiento de Escudo', seq: ['back', 'fwd', 'punch'], label: '←  →  GOLPE', desc: 'Lanza su escudo de estrellas y regresa' },
+    superMove: { name: 'Impacto Heroico', desc: 'Salta por los cielos y azota el piso con su escudo' },
     moves: {
       punch: (f) => (f.hasShield ? mkPunch({ pose: 'bash', dmg: 6, reach: 8 }) : mkPunch()),
       kick: () => mkKick(),
@@ -304,20 +371,54 @@ const CHARACTERS = [
       }),
     },
     drawHead(g, f, J, col) {
-      const fx = J.facing;
-      // Casco con cresta
-      g.fillStyle(col(0xb03030), 1);
-      g.fillEllipse(J.head.x - 2 * fx, J.head.y - HEAD_R - 2, 26, 10);
-      g.fillStyle(col(0x1b1b1b), 1);
-      g.fillRect(J.head.x + (fx > 0 ? 1 : -13), J.head.y - 4, 12, 5);
-      g.fillRect(J.head.x + (fx > 0 ? 3 : -6), J.head.y - 2, 3, 14);
+      const fx = J.facing || 1, hx = J.head.x, hy = J.head.y;
+      // Casco azul base
+      g.fillStyle(col(f.colors.head), 1);
+      g.fillCircle(hx, hy, HEAD_R);
+      // Apertura de rostro (piel de Cap en mentón/boca)
+      g.fillStyle(col(0xf0c298), 1);
+      g.fillPoints([
+        { x: hx - 5 * fx, y: hy + 3 },
+        { x: hx + 11 * fx, y: hy + 2 },
+        { x: hx + 8 * fx, y: hy + 12 },
+        { x: hx - 3 * fx, y: hy + 12 }
+      ], true);
+      // Tira del mentón marrón
+      g.lineStyle(2, col(0x5a3518), 1);
+      g.lineBetween(hx - 5 * fx, hy + 3, hx - 2 * fx, hy + 11);
+      // Letra "A" blanca en la frente
+      g.lineStyle(2, col(0xffffff), 1);
+      g.lineBetween(hx + 0 * fx, hy - 10, hx - 3 * fx, hy - 2);
+      g.lineBetween(hx + 0 * fx, hy - 10, hx + 3 * fx, hy - 2);
+      g.lineBetween(hx - 2 * fx, hy - 5, hx + 2 * fx, hy - 5);
+      // Alitas blancas en el lateral
+      g.fillStyle(col(0xffffff), 1);
+      g.fillTriangle(hx - 7 * fx, hy - 5, hx - 14 * fx, hy - 10, hx - 8 * fx, hy - 8);
+      g.lineStyle(1.5, col(shade(f.colors.suit, 0.6)), 0.8);
+      g.strokeCircle(hx, hy, HEAD_R);
     },
     drawTorso(g, f, J, col) {
-      g.lineStyle(6, col(f.colors.accent), 1);
-      g.lineBetween(J.hip.x - 13, J.hip.y - 3, J.hip.x + 13, J.hip.y - 3);
       const cx = lerp(J.hip.x, J.sh.x, 0.62), cy = lerp(J.hip.y, J.sh.y, 0.62);
-      g.fillStyle(col(f.colors.accent), 1);
-      g.fillTriangle(cx - 8, cy - 6, cx + 8, cy - 6, cx, cy + 8);
+      // Rayas rojas y blancas en el abdomen
+      const w = 18, h = 8;
+      g.fillStyle(col(0xffffff), 1);
+      g.fillRect(J.hip.x - w / 2, J.hip.y - 10, w, h);
+      g.fillStyle(col(0xc82020), 1);
+      g.fillRect(J.hip.x - w / 2 + 3, J.hip.y - 10, 4, h);
+      g.fillRect(J.hip.x - w / 2 + 11, J.hip.y - 10, 4, h);
+      // Cinturón marrón táctico
+      g.lineStyle(5, col(0x52331b), 1);
+      g.lineBetween(J.hip.x - 13, J.hip.y - 2, J.hip.x + 13, J.hip.y - 2);
+      // Gran Estrella Blanca en el centro del pecho
+      g.fillStyle(col(0xffffff), 1);
+      const starR = 6;
+      const pts = [];
+      for (let i = 0; i < 10; i++) {
+        const a = (i * Math.PI) / 5 - Math.PI / 2;
+        const r = i % 2 === 0 ? starR : starR * 0.45;
+        pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+      }
+      g.fillPoints(pts, true);
     },
     drawFront(g, f, J, col) {
       if (!f.hasShield) return;
@@ -327,15 +428,15 @@ const CHARACTERS = [
       drawShield(g, cx, cy, 24, f, col, f.blocking ? 1 : 0.92);
     },
   },
-  // ======================= REMOLINO (ninja de los clones) =======================
+  // ======================= NARUTO (REMOLINO) =======================
   {
-    id: 'remolino', name: 'REMOLINO', tagline: 'Ninja de los clones',
-    colors: { suit: 0x1f5fbf, accent: 0xffb31a, head: 0xe8b98a, hair: 0x14306b },
-    alt: { suit: 0x2e7d32, accent: 0xff7043, head: 0xe8b98a, hair: 0x1b3d1d },
+    id: 'remolino', name: 'NARUTO', tagline: 'Héroe de la Aldea de la Hoja',
+    colors: { suit: 0xf06810, accent: 0x182442, head: 0xf8cba0, hair: 0xf5d818 },
+    alt: { suit: 0x222222, accent: 0xc81e1e, head: 0xf8cba0, hair: 0xf5d818 },
     speed: 290, jump: 790, jumps: 1, powerMul: 1.5, stats: { VEL: 3, FUE: 3, DEF: 3, ESP: 5 },
-    passive: 'Energía enorme: llena el súper más rápido',
-    combo: { name: 'Clones de Sombra', seq: ['down', 'down', 'punch'], desc: 'Dos copias suyas corren a pegar' },
-    superMove: { name: 'Esfera Espiral', desc: 'Una esfera de viento que gira y arrastra al rival' },
+    passive: 'Chakra de Kurama: llena el súper más rápido',
+    combo: { name: 'Jutsu Clones de Sombra', seq: ['down', 'down', 'punch'], desc: 'Invoca clones de sombra que corren a golpear' },
+    superMove: { name: 'Gran Rasengan', desc: 'Una esfera de chakra giratoria que arrasa al rival' },
     moves: {
       punch: () => mkPunch(),
       kick: () => mkKick(),
@@ -368,44 +469,67 @@ const CHARACTERS = [
       }),
     },
     drawBack(g, f, J, col) {
-      // Bufanda larga que flamea
-      const fx = J.facing, w = Math.sin(f.animT * 9) * 6;
-      g.lineStyle(7, col(f.colors.accent), 1);
-      g.lineBetween(J.sh.x - 4 * fx, J.sh.y - 4, J.sh.x - 34 * fx, J.sh.y + 6 + w);
-      g.lineStyle(6, col(shade(f.colors.accent, 0.8)), 1);
-      g.lineBetween(J.sh.x - 30 * fx, J.sh.y + 6 + w, J.sh.x - 52 * fx, J.sh.y + 16 - w);
+      // Espiral roja del clan Uzumaki en la espalda
+      const fx = J.facing || 1;
+      const cx = J.sh.x - 8 * fx, cy = J.sh.y + 6;
+      g.fillStyle(col(0xc81e1e), 1);
+      g.fillCircle(cx, cy, 5);
+      g.fillStyle(col(f.colors.suit), 1);
+      g.fillCircle(cx, cy, 2);
     },
     drawTorso(g, f, J, col) {
-      const cx = lerp(J.hip.x, J.sh.x, 0.6), cy = lerp(J.hip.y, J.sh.y, 0.6);
-      g.fillStyle(col(f.colors.accent), 1);
-      g.fillPoints([{ x: cx, y: cy - 9 }, { x: cx + 7, y: cy }, { x: cx, y: cy + 9 }, { x: cx - 7, y: cy }], true);
-      g.lineStyle(6, col(f.colors.accent), 1);
-      g.lineBetween(J.sh.x - 12, J.sh.y + 4, J.sh.x + 12, J.sh.y + 4); // cuello de la bufanda
-      g.lineStyle(5, col(0x1a1a1a), 1);
-      g.lineBetween(J.hip.x - 13, J.hip.y - 3, J.hip.x + 13, J.hip.y - 3);
+      // Chaqueta naranja con cuello blanco y hombros azules
+      g.fillStyle(col(0x182442), 1);
+      g.fillCircle(J.sh.x, J.sh.y + 1, 13);
+      g.fillStyle(col(0xffffff), 1);
+      g.fillRect(J.sh.x - 10, J.sh.y - 2, 20, 4); // cuello blanco
+      // Vendaje blanco en la pierna
+      g.fillStyle(col(0xffffff), 0.9);
+      g.fillRect(J.hip.x - 8, J.hip.y - 4, 16, 4);
     },
     drawHead(g, f, J, col) {
-      const fx = J.facing, hx = J.head.x, hy = J.head.y;
-      // Pelo en mechones
+      const fx = J.facing || 1, hx = J.head.x, hy = J.head.y;
+      // Cara piel
+      g.fillStyle(col(f.colors.head), 1);
+      g.fillCircle(hx, hy, HEAD_R);
+      // Pelo rubio en puntas de Naruto
       g.fillStyle(col(f.colors.hair), 1);
-      g.fillTriangle(hx - 15 * fx, hy - 2, hx - 4 * fx, hy - 16, hx - 26 * fx, hy - 14);
-      g.fillTriangle(hx - 8 * fx, hy - 10, hx + 6 * fx, hy - 17, hx - 6 * fx, hy - 26);
-      g.fillTriangle(hx + 2 * fx, hy - 12, hx + 15 * fx, hy - 9, hx + 10 * fx, hy - 22);
-      g.fillStyle(col(f.colors.hair), 1); g.fillRect(hx - 15, hy - 14, 30, 6);
-      // Ojo decidido
-      g.fillStyle(col(0xffffff), 1); g.fillEllipse(hx + 8 * fx, hy - 1, 7, 5);
-      g.fillStyle(col(0x14306b), 1); g.fillCircle(hx + 9 * fx, hy - 1, 2);
-      g.lineStyle(2, col(0x3a2010), 1); g.lineBetween(hx + 3 * fx, hy - 6, hx + 12 * fx, hy - 5);
+      g.fillTriangle(hx - 14 * fx, hy - 4, hx - 5 * fx, hy - 16, hx - 22 * fx, hy - 14);
+      g.fillTriangle(hx - 8 * fx, hy - 11, hx + 4 * fx, hy - 18, hx - 6 * fx, hy - 25);
+      g.fillTriangle(hx + 1 * fx, hy - 12, hx + 14 * fx, hy - 10, hx + 8 * fx, hy - 22);
+      g.fillTriangle(hx + 8 * fx, hy - 8, hx + 18 * fx, hy - 5, hx + 15 * fx, hy - 16);
+      g.fillEllipse(hx, hy - 11, 24, 8);
+      // Banda ninja de Konoha (azul oscuro)
+      g.fillStyle(col(0x182442), 1);
+      g.fillRect(hx - 14, hy - 11, 28, 6);
+      // Placa metálica de la aldea de la hoja
+      g.fillStyle(col(0xd4dce8), 1);
+      g.fillRoundedRect(hx - 8, hy - 11, 16, 6, 2);
+      // Símbolo de la hoja en la placa
+      g.lineStyle(1.5, col(0x222222), 1);
+      g.strokeCircle(hx, hy - 8, 1.8);
+      // Tres marcas de bigotes en la mejilla
+      g.lineStyle(1.2, col(0x5a2d0c), 0.85);
+      g.lineBetween(hx + 4 * fx, hy + 2, hx + 9 * fx, hy + 1);
+      g.lineBetween(hx + 3 * fx, hy + 5, hx + 8 * fx, hy + 5);
+      g.lineBetween(hx + 4 * fx, hy + 8, hx + 9 * fx, hy + 8);
+      // Ojo azul decidido
+      g.fillStyle(col(0xffffff), 1);
+      g.fillEllipse(hx + 7 * fx, hy - 1, 6, 5);
+      g.fillStyle(col(0x1a70c8), 1);
+      g.fillCircle(hx + 8 * fx, hy - 1, 2);
+      g.lineStyle(1.5, col(0x4a2a0a), 1);
+      g.lineBetween(hx + 3 * fx, hy - 5, hx + 11 * fx, hy - 4);
     },
     drawFront(g, f, J) {
       const m = f.move;
       if (!m || m.id !== 'espiral') return;
       const r = m.t < 0.42 ? 6 + m.t * 52 : 28;
       const hx = J.fh.x + J.facing * (r * 0.6), hy = J.fh.y;
-      g.fillStyle(0xbfe9ff, 0.25); g.fillCircle(hx, hy, r + 10);
-      g.fillStyle(0xe6f7ff, 0.8); g.fillCircle(hx, hy, r);
-      g.fillStyle(0xffffff, 1); g.fillCircle(hx, hy, r * 0.45);
-      g.lineStyle(3, 0x7fd0ff, 0.9);
+      g.fillStyle(0xbfe9ff, 0.35); g.fillCircle(hx, hy, r + 10);
+      g.fillStyle(0x7fd0ff, 0.7); g.fillCircle(hx, hy, r);
+      g.fillStyle(0xffffff, 1); g.fillCircle(hx, hy, r * 0.5);
+      g.lineStyle(3, 0x00f0ff, 0.95);
       for (let k = 0; k < 3; k++) {
         const a = m.t * 22 + k * 2.1;
         g.beginPath(); g.arc(hx, hy, r * (0.55 + k * 0.17), a, a + 2.2, false); g.strokePath();
@@ -413,15 +537,15 @@ const CHARACTERS = [
     },
   },
 
-  // ======================= CENTELLA (ninja eléctrico) =======================
+  // ======================= BORUTO (CENTELLA) =======================
   {
-    id: 'centella', name: 'CENTELLA', tagline: 'Ninja rayo, el más rápido',
-    colors: { suit: 0x2b2d42, accent: 0xff3fa4, head: 0xe8b98a, hair: 0xf2f2f2 },
-    alt: { suit: 0x4a3216, accent: 0x5fe3ff, head: 0xe8b98a, hair: 0xffe08a },
+    id: 'centella', name: 'BORUTO', tagline: 'Ninja prodigio de la nueva era',
+    colors: { suit: 0x1e1e24, accent: 0xeb1b74, head: 0xf8cba0, hair: 0xf2df38 },
+    alt: { suit: 0x182838, accent: 0x30d5c8, head: 0xf8cba0, hair: 0xf2df38 },
     speed: 330, jump: 820, jumps: 1, stats: { VEL: 5, FUE: 3, DEF: 2, ESP: 4 },
-    passive: 'El más rápido: corre como un rayo',
-    combo: { name: 'Shuriken Eléctrico', seq: ['fwd', 'fwd', 'kick'], desc: 'Dos estrellas que paralizan un ratito' },
-    superMove: { name: 'Esfera Fantasma', desc: 'Desaparece y reaparece delante del rival' },
+    passive: 'Reflejos relámpago: el ninja más veloz',
+    combo: { name: 'Shuriken de Rayo', seq: ['fwd', 'fwd', 'kick'], desc: 'Lanza shurikens imbuidos en electricidad' },
+    superMove: { name: 'Rasengan Desvaneciente', desc: 'Lanza un Rasengan invisible que aparece frente al rival' },
     moves: {
       punch: () => mkPunch(),
       kick: () => mkKick({ dmg: 8 }),
@@ -446,41 +570,66 @@ const CHARACTERS = [
     },
     drawTorso(g, f, J, col) {
       const cx = lerp(J.hip.x, J.sh.x, 0.6), cy = lerp(J.hip.y, J.sh.y, 0.6);
-      g.fillStyle(col(f.colors.accent), 1);
-      g.fillPoints([{ x: cx + 2, y: cy - 11 }, { x: cx - 5, y: cy + 1 }, { x: cx, y: cy + 1 }, { x: cx - 3, y: cy + 11 }, { x: cx + 5, y: cy - 2 }, { x: cx, y: cy - 2 }], true);
-      g.lineStyle(4, col(f.colors.accent), 1);
+      // Chaqueta negra con franjas fucsia / rosa neón
+      g.lineStyle(4, col(0xeb1b74), 1);
+      g.lineBetween(J.sh.x - 12, J.sh.y + 4, J.sh.x + 12, J.sh.y + 4);
+      g.lineBetween(J.sh.x - 8, J.sh.y + 6, J.hip.x - 8, J.hip.y - 4);
+      g.lineBetween(J.sh.x + 8, J.sh.y + 6, J.hip.x + 8, J.hip.y - 4);
+      // Remera blanca debajo
+      g.fillStyle(col(0xffffff), 1);
+      g.fillRect(cx - 4, cy - 8, 8, 12);
+      // Cinturón blanco
+      g.lineStyle(4, col(0xffffff), 1);
       g.lineBetween(J.hip.x - 13, J.hip.y - 3, J.hip.x + 13, J.hip.y - 3);
     },
     drawHead(g, f, J, col) {
-      const fx = J.facing, hx = J.head.x, hy = J.head.y;
+      const fx = J.facing || 1, hx = J.head.x, hy = J.head.y;
+      // Cara piel
+      g.fillStyle(col(f.colors.head), 1);
+      g.fillCircle(hx, hy, HEAD_R);
+      // Pelo rubio ondulado con brote característico (tallo/ahoge en la cima)
       g.fillStyle(col(f.colors.hair), 1);
-      g.fillEllipse(hx - 3 * fx, hy - 10, 30, 14);
-      g.fillTriangle(hx - 14 * fx, hy - 8, hx - 24 * fx, hy - 4, hx - 12 * fx, hy + 2);
-      // Antiparras en la frente
-      g.fillStyle(col(0x1a1a1a), 1); g.fillRect(hx - 16, hy - 9, 32, 4);
-      g.fillStyle(col(f.colors.accent), 1); g.fillCircle(hx + 7 * fx, hy - 8, 5); g.fillCircle(hx - 3 * fx, hy - 8, 4);
-      g.fillStyle(0xffffff, 0.6); g.fillCircle(hx + 6 * fx, hy - 9, 1.6);
-      g.fillStyle(col(0xffffff), 1); g.fillEllipse(hx + 8 * fx, hy + 2, 6, 4);
-      g.fillStyle(col(0x2b2d42), 1); g.fillCircle(hx + 9 * fx, hy + 2, 1.8);
+      g.fillEllipse(hx - 2 * fx, hy - 11, 26, 12);
+      g.fillTriangle(hx - 12 * fx, hy - 7, hx - 22 * fx, hy - 4, hx - 10 * fx, hy + 2);
+      g.fillTriangle(hx + 2 * fx, hy - 12, hx + 14 * fx, hy - 9, hx + 8 * fx, hy - 18);
+      // Brote de hoja en la coronilla
+      g.lineStyle(3, col(f.colors.hair), 1);
+      g.lineBetween(hx, hy - 15, hx + 3 * fx, hy - 22);
+      g.lineBetween(hx + 3 * fx, hy - 22, hx + 8 * fx, hy - 20);
+      // Banda ninja negra de Konoha
+      g.fillStyle(col(0x1a1a20), 1);
+      g.fillRect(hx - 14, hy - 10, 28, 5);
+      // Placa plateada
+      g.fillStyle(col(0xd4dce8), 1);
+      g.fillRoundedRect(hx - 8, hy - 10, 16, 5, 2);
+      // Dos marcas de bigotes en la mejilla
+      g.lineStyle(1.2, col(0x5a2d0c), 0.85);
+      g.lineBetween(hx + 4 * fx, hy + 3, hx + 8 * fx, hy + 3);
+      g.lineBetween(hx + 4 * fx, hy + 6, hx + 8 * fx, hy + 6);
+      // Ojos celestes
+      g.fillStyle(col(0xffffff), 1);
+      g.fillEllipse(hx + 7 * fx, hy + 1, 6, 4.5);
+      g.fillStyle(col(0x28a8e0), 1);
+      g.fillCircle(hx + 8 * fx, hy + 1, 1.8);
     },
-    drawFront(g, f, J) {
+    drawFront(g, f, J, col) {
       if (Math.abs(f.vx) > 200 && f.onGround && Math.random() < 0.5) {
-        g.lineStyle(2, f.colors.accent, 0.8);
+        g.lineStyle(2, col(0xeb1b74), 0.8);
         const x = f.x - f.facing * 20, y = f.y - 30 - Math.random() * 70;
         g.lineBetween(x, y, x - f.facing * 18, y + 6);
       }
     },
   },
 
-  // ======================= ESPEJO (el que copia) =======================
+  // ======================= KAKASHI (ESPEJO) =======================
   {
-    id: 'espejo', name: 'ESPEJO', tagline: 'Copia los trucos del rival',
-    colors: { suit: 0x7d8799, accent: 0x3fd2ff, head: 0xd6dde6 },
-    alt: { suit: 0x4a3b66, accent: 0xffd23f, head: 0xe8d9b0 },
+    id: 'espejo', name: 'KAKASHI', tagline: 'El ninja que copia (Sharingan)',
+    colors: { suit: 0x1c2432, accent: 0x3a5634, head: 0xf8cba0, hair: 0xd4d8df },
+    alt: { suit: 0x14141a, accent: 0x8a1818, head: 0xf8cba0, hair: 0xd4d8df },
     speed: 300, jump: 780, jumps: 1, stats: { VEL: 4, FUE: 4, DEF: 3, ESP: 4 },
-    passive: 'Ojo copiador: su combo copia el combo del rival',
-    combo: { name: 'Copia', seq: ['back', 'back', 'punch'], desc: 'Hace el combo de su rival', copies: true },
-    superMove: { name: 'Cuchilla Relámpago', desc: 'Carga un rayo en la mano y atraviesa al rival' },
+    passive: 'Ojo Sharingan: su combo copia el combo del rival',
+    combo: { name: 'Copia Sharingan', seq: ['back', 'back', 'punch'], desc: 'Copia y ejecuta el combo de su rival', copies: true },
+    superMove: { name: 'Cuchilla Relámpago (Raikiri)', desc: 'Carga un rayo en la mano y atraviesa al rival' },
     moves: {
       punch: () => mkPunch({ dmg: 6 }),
       kick: () => mkKick({ dmg: 9 }),
@@ -506,46 +655,89 @@ const CHARACTERS = [
     },
     drawTorso(g, f, J, col) {
       const cx = lerp(J.hip.x, J.sh.x, 0.62), cy = lerp(J.hip.y, J.sh.y, 0.62);
-      g.lineStyle(3, col(f.colors.accent), 1);
-      g.lineBetween(cx - 6, cy - 9, cx + 3, cy - 2); g.lineBetween(cx + 3, cy - 2, cx - 3, cy + 2); g.lineBetween(cx - 3, cy + 2, cx + 6, cy + 10);
-      g.fillStyle(col(shade(f.colors.suit, 0.7)), 1); g.fillRect(J.hip.x - 14, J.hip.y - 6, 28, 6);
+      // Chaleco táctico Jonin verde oliva con bolsillos
+      g.fillStyle(col(0x3a5634), 1);
+      g.fillRect(cx - 10, cy - 10, 20, 16);
+      g.lineStyle(2, col(0x283e24), 1);
+      g.strokeRect(cx - 10, cy - 10, 20, 16);
+      // Bolsillos frontales
+      g.fillStyle(col(0x283e24), 1);
+      g.fillRect(cx - 8, cy - 3, 6, 6);
+      g.fillRect(cx + 2, cy - 3, 6, 6);
+      // Cuello alto del chaleco
+      g.lineStyle(5, col(0x3a5634), 1);
+      g.lineBetween(J.sh.x - 12, J.sh.y + 2, J.sh.x + 12, J.sh.y + 2);
     },
     drawHead(g, f, J, col) {
-      const fx = J.facing, hx = J.head.x, hy = J.head.y;
-      // Máscara de espejo con reflejos
-      g.fillStyle(col(0xffffff), 0.55);
-      g.fillPoints([{ x: hx - 6 * fx, y: hy - 14 }, { x: hx + 2 * fx, y: hy - 14 }, { x: hx - 8 * fx, y: hy + 12 }, { x: hx - 14 * fx, y: hy + 9 }], true);
-      g.lineStyle(2, col(f.colors.accent), 1);
-      g.lineBetween(hx + 2 * fx, hy - 2, hx + 15 * fx, hy - 2);
-      g.lineStyle(2, col(shade(f.colors.head, 0.6)), 1); g.strokeCircle(hx, hy, HEAD_R);
+      const fx = J.facing || 1, hx = J.head.x, hy = J.head.y;
+      // Cara piel base
+      g.fillStyle(col(f.colors.head), 1);
+      g.fillCircle(hx, hy, HEAD_R);
+      // Máscara azul oscuro cubriendo nariz y boca
+      g.fillStyle(col(0x1c2432), 1);
+      g.fillPoints([
+        { x: hx - 14, y: hy - 1 },
+        { x: hx + 14, y: hy - 1 },
+        { x: hx + 10, y: hy + 13 },
+        { x: hx - 10, y: hy + 13 }
+      ], true);
+      // Pelo plateado/grisáceo de punta hacia el costado
+      g.fillStyle(col(f.colors.hair), 1);
+      g.fillTriangle(hx - 14 * fx, hy - 4, hx - 6 * fx, hy - 18, hx - 24 * fx, hy - 22);
+      g.fillTriangle(hx - 6 * fx, hy - 12, hx + 6 * fx, hy - 20, hx - 4 * fx, hy - 28);
+      g.fillTriangle(hx + 2 * fx, hy - 12, hx + 14 * fx, hy - 12, hx + 6 * fx, hy - 24);
+      g.fillTriangle(hx + 8 * fx, hy - 6, hx + 18 * fx, hy - 8, hx + 14 * fx, hy - 18);
+      // Banda ninja inclinada cubriendo el ojo izquierdo
+      g.fillStyle(col(0x182442), 1);
+      g.fillPoints([
+        { x: hx - 14, y: hy - 11 },
+        { x: hx + 14, y: hy - 7 },
+        { x: hx + 13, y: hy - 2 },
+        { x: hx - 14, y: hy - 5 }
+      ], true);
+      // Placa metálica
+      g.fillStyle(col(0xd4dce8), 1);
+      g.fillRoundedRect(hx - 7, hy - 10, 14, 5, 2);
+      // Ojo derecho: Sharingan rojo brillante con pupila negra
+      g.fillStyle(col(0xffffff), 1);
+      g.fillEllipse(hx + 6 * fx, hy + 2, 6, 4.5);
+      g.fillStyle(col(0xe51818), 1);
+      g.fillCircle(hx + 6 * fx, hy + 2, 2.2);
+      g.fillStyle(col(0x111111), 1);
+      g.fillCircle(hx + 6 * fx, hy + 2, 1);
     },
     drawFront(g, f, J) {
       const m = f.move;
       if (!m || m.id !== 'cuchilla') return;
-      const hx = J.fh.x, hy = J.fh.y, acc = f.colors.accent;
-      const r = m.t < 0.4 ? 10 + m.t * 40 : 26;
-      g.fillStyle(acc, 0.3); g.fillCircle(hx, hy, r);
-      g.fillStyle(0xffffff, 0.9); g.fillCircle(hx, hy, r * 0.35);
-      for (let k = 0; k < 6; k++) {
+      const hx = J.fh.x, hy = J.fh.y;
+      const r = m.t < 0.4 ? 12 + m.t * 40 : 28;
+      // Chidori / Raikiri: Rayos celestes y blancos chispeantes
+      g.fillStyle(0x00f0ff, 0.4); g.fillCircle(hx, hy, r);
+      g.fillStyle(0xffffff, 0.95); g.fillCircle(hx, hy, r * 0.4);
+      for (let k = 0; k < 7; k++) {
         let x = hx, y = hy;
         const a = Math.random() * Math.PI * 2;
-        g.lineStyle(k % 2 ? 2 : 3, k % 2 ? 0xffffff : acc, 1);
+        g.lineStyle(k % 2 ? 2 : 3, k % 2 ? 0xffffff : 0x00e5ff, 1);
         g.beginPath(); g.moveTo(x, y);
-        for (let q = 0; q < 4; q++) { x += Math.cos(a) * r * 0.5 + (Math.random() - 0.5) * 14; y += Math.sin(a) * r * 0.5 + (Math.random() - 0.5) * 14; g.lineTo(x, y); }
+        for (let q = 0; q < 4; q++) {
+          x += Math.cos(a) * r * 0.5 + (Math.random() - 0.5) * 16;
+          y += Math.sin(a) * r * 0.5 + (Math.random() - 0.5) * 16;
+          g.lineTo(x, y);
+        }
         g.strokePath();
       }
     },
   },
 
-  // ======================= OBSIDIANA (señor del fuego) =======================
+  // ======================= MADARA (OBSIDIANA) =======================
   {
-    id: 'obsidiana', name: 'OBSIDIANA', tagline: 'Guerrero de lava',
-    colors: { suit: 0x2a2230, accent: 0xff6a1a, head: 0x3a2f42 },
-    alt: { suit: 0x1f3a3a, accent: 0x7cff4f, head: 0x2a4a4a },
+    id: 'obsidiana', name: 'MADARA', tagline: 'El legendario líder Uchiha',
+    colors: { suit: 0x141624, accent: 0x8c1b1b, head: 0xead8c8, hair: 0x0c0c14 },
+    alt: { suit: 0xd8d8de, accent: 0x38bdf8, head: 0xead8c8, hair: 0xffffff },
     speed: 215, jump: 690, jumps: 1, armor: 0.8, stats: { VEL: 1, FUE: 5, DEF: 5, ESP: 5 },
-    passive: 'Armadura de roca: recibe menos daño',
-    combo: { name: 'Gran Bola de Fuego', seq: ['back', 'fwd', 'kick'], desc: 'Una bola de fuego enorme y lenta' },
-    superMove: { name: 'Lluvia de Meteoros', desc: 'Hace caer meteoros del cielo sobre el rival' },
+    passive: 'Armadura Susanoo: absorbe gran parte del daño',
+    combo: { name: 'Katon: Gran Bola de Fuego', seq: ['back', 'fwd', 'kick'], desc: 'Lanza una colosal bola de fuego abrasadora' },
+    superMove: { name: 'Tengai Shinsei: Meteoros', desc: 'Invoca gigantescos meteoros celestiales del cielo' },
     moves: {
       punch: () => mkPunch({ dmg: 7 }),
       kick: () => mkKick({ dmg: 9 }),
@@ -565,33 +757,57 @@ const CHARACTERS = [
         },
       }),
     },
-    drawBack(g, f) {
-      // Brasas que suben
+    drawBack(g, f, J, col) {
+      // Melena larga salvaje de Madara cayendo por la espalda
+      if (J && J.sh) {
+        const fx = J.facing || 1;
+        g.fillStyle(col(0x0c0c14), 1);
+        g.fillTriangle(J.sh.x - 12 * fx, J.sh.y - 10, J.sh.x - 36 * fx, J.sh.y + 36, J.sh.x - 16 * fx, J.sh.y + 42);
+        g.fillTriangle(J.sh.x - 8 * fx, J.sh.y - 8, J.sh.x - 24 * fx, J.sh.y + 44, J.sh.x - 2 * fx, J.sh.y + 38);
+      }
+      // Brasas de fuego ascendentes
       if (Math.random() < 0.6) {
-        g.fillStyle(f.colors.accent, 0.8);
+        g.fillStyle(0xff4500, 0.8);
         g.fillCircle(f.x + (Math.random() - 0.5) * 50, f.y - Math.random() * 140, 1.5 + Math.random() * 2);
       }
     },
     drawTorso(g, f, J, col) {
-      const acc = col(f.colors.accent);
-      g.lineStyle(2, acc, 0.9);
-      const a = { x: lerp(J.hip.x, J.sh.x, 0.2), y: lerp(J.hip.y, J.sh.y, 0.2) }, b = { x: lerp(J.hip.x, J.sh.x, 0.75), y: lerp(J.hip.y, J.sh.y, 0.75) };
-      g.lineBetween(a.x - 6, a.y, b.x + 4, b.y); g.lineBetween(b.x + 4, b.y, b.x - 6, b.y - 8);
-      g.lineBetween(lerp(a.x, b.x, 0.5) - 2, lerp(a.y, b.y, 0.5), lerp(a.x, b.x, 0.5) + 9, lerp(a.y, b.y, 0.5) + 4);
-      // Hombreras con púas
-      g.fillStyle(col(shade(f.colors.suit, 1.5)), 1);
-      g.fillCircle(J.sh.x, J.sh.y + 3, 14);
-      g.fillTriangle(J.sh.x - 10, J.sh.y - 6, J.sh.x - 2, J.sh.y - 6, J.sh.x - 8, J.sh.y - 18);
-      g.fillTriangle(J.sh.x + 2, J.sh.y - 6, J.sh.x + 10, J.sh.y - 6, J.sh.x + 8, J.sh.y - 18);
+      const cx = lerp(J.hip.x, J.sh.x, 0.62), cy = lerp(J.hip.y, J.sh.y, 0.62);
+      // Coraza de samurái roja segmented
+      g.fillStyle(col(0x8c1b1b), 1);
+      g.fillRect(cx - 10, cy - 10, 20, 16);
+      g.lineStyle(2, col(0x111118), 1);
+      g.lineBetween(cx - 10, cy - 4, cx + 10, cy - 4);
+      g.lineBetween(cx - 10, cy + 2, cx + 10, cy + 2);
+      // Hombreras de samurái rojas con placas
+      g.fillStyle(col(0x8c1b1b), 1);
+      g.fillCircle(J.sh.x, J.sh.y + 2, 13);
+      g.fillTriangle(J.sh.x - 10, J.sh.y - 4, J.sh.x - 2, J.sh.y - 4, J.sh.x - 8, J.sh.y - 16);
+      g.fillTriangle(J.sh.x + 2, J.sh.y - 4, J.sh.x + 10, J.sh.y - 4, J.sh.x + 8, J.sh.y - 16);
     },
     drawHead(g, f, J, col) {
-      const fx = J.facing, hx = J.head.x, hy = J.head.y, acc = col(f.colors.accent);
-      // Casco con cuernos y ranura de lava
-      g.fillStyle(acc, 1);
-      g.fillTriangle(hx - 8 * fx, hy - 10, hx - 2 * fx, hy - 13, hx - 20 * fx, hy - 30);
-      g.fillTriangle(hx + 4 * fx, hy - 13, hx + 10 * fx, hy - 9, hx + 14 * fx, hy - 30);
-      g.fillStyle(col(0x140e18), 1); g.fillRect(hx - 2 * fx - (fx < 0 ? 16 : 0), hy - 4, 17, 7);
-      g.fillStyle(acc, 1); g.fillRect(hx + (fx > 0 ? 2 : -14), hy - 2, 12, 3);
+      const fx = J.facing || 1, hx = J.head.x, hy = J.head.y;
+      // Cara piel pálida
+      g.fillStyle(col(f.colors.head), 1);
+      g.fillCircle(hx, hy, HEAD_R);
+      // Mechones salvajes negros de Madara alrededor del rostro
+      g.fillStyle(col(0x0c0c14), 1);
+      g.fillTriangle(hx - 14 * fx, hy - 4, hx - 6 * fx, hy - 18, hx - 26 * fx, hy - 22);
+      g.fillTriangle(hx - 6 * fx, hy - 12, hx + 4 * fx, hy - 20, hx - 6 * fx, hy - 28);
+      g.fillTriangle(hx + 2 * fx, hy - 12, hx + 15 * fx, hy - 10, hx + 10 * fx, hy - 24);
+      g.fillTriangle(hx + 8 * fx, hy - 6, hx + 18 * fx, hy - 8, hx + 14 * fx, hy - 18);
+      // Mechones cayendo hacia los lados del rostro
+      g.fillTriangle(hx - 12 * fx, hy, hx - 18 * fx, hy + 14, hx - 7 * fx, hy + 8);
+      g.fillTriangle(hx + 7 * fx, hy + 2, hx + 14 * fx, hy + 14, hx + 10 * fx, hy + 6);
+      // Ojos Sharingan / Rinnegan rojos siniestros con marcas
+      g.fillStyle(col(0xe51818), 1);
+      g.fillEllipse(hx + 5 * fx, hy + 1, 6, 4);
+      g.fillEllipse(hx - 5 * fx, hy + 1, 5, 3.5);
+      g.fillStyle(col(0x0c0c14), 1);
+      g.fillCircle(hx + 5 * fx, hy + 1, 1.5);
+      g.fillCircle(hx - 5 * fx, hy + 1, 1.2);
+      g.lineStyle(2, col(0x0c0c14), 1);
+      g.lineBetween(hx + 1 * fx, hy - 3, hx + 9 * fx, hy - 1);
     },
   },
 
@@ -605,19 +821,32 @@ function drawSword(g, elbow, hand, col) {
   g.lineBetween(hand.x, hand.y, hand.x + ux * 60, hand.y + uy * 60);
   g.lineStyle(6, col(0x222222), 1);
   g.lineBetween(hand.x - ux * 6, hand.y - uy * 6, hand.x + ux * 4, hand.y + uy * 4);
-  g.lineStyle(3, col(0xff8a1f), 1);
+  g.lineStyle(3, col(0xb81818), 1);
   g.lineBetween(hand.x + ux * 4 - uy * 7, hand.y + uy * 4 + ux * 7, hand.x + ux * 4 + uy * 7, hand.y + uy * 4 - ux * 7);
 }
 
 function drawShield(g, cx, cy, r, f, col, alpha = 1, spin = 0) {
-  g.fillStyle(col(f.colors.suit), alpha); g.fillCircle(cx, cy, r);
-  g.fillStyle(col(f.colors.accent), alpha); g.fillCircle(cx, cy, r - 4);
-  g.lineStyle(2, col(shade(f.colors.accent, 0.6)), alpha); g.strokeCircle(cx, cy, r - 9);
-  g.fillStyle(col(f.colors.suit), alpha);
-  const a = spin;
-  const p = (k) => ({ x: cx + Math.cos(a + k) * 9, y: cy + Math.sin(a + k) * 9 });
-  const p1 = p(-Math.PI / 2), p2 = p(Math.PI / 6), p3 = p(Math.PI * 5 / 6);
-  g.fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+  // Escudo de Capitán América: Anillos concéntricos rojo, blanco, rojo, azul + Estrella blanca
+  g.fillStyle(col(0xc82020), alpha); // Anillo exterior rojo
+  g.fillCircle(cx, cy, r);
+  g.fillStyle(col(0xf0f0f5), alpha); // Anillo blanco
+  g.fillCircle(cx, cy, r * 0.78);
+  g.fillStyle(col(0xc82020), alpha); // Anillo interior rojo
+  g.fillCircle(cx, cy, r * 0.56);
+  g.fillStyle(col(0x194896), alpha); // Círculo central azul
+  g.fillCircle(cx, cy, r * 0.36);
+  // Estrella blanca de 5 puntas en el centro
+  g.fillStyle(col(0xffffff), alpha);
+  const starR = r * 0.35;
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const a = (i * Math.PI) / 5 - Math.PI / 2 + spin;
+    const rad = i % 2 === 0 ? starR : starR * 0.42;
+    pts.push({ x: cx + Math.cos(a) * rad, y: cy + Math.sin(a) * rad });
+  }
+  g.fillPoints(pts, true);
+  g.lineStyle(1.5, col(0x111111), alpha * 0.4);
+  g.strokeCircle(cx, cy, r);
 }
 
 const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map((c) => [c.id, c]));
