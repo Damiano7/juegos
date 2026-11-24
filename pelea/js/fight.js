@@ -219,6 +219,7 @@ class FightScene extends Phaser.Scene {
   }
 
   announce(text, grad = GRAD.gold, flash = false) {
+    if (this.replaying && this.bigText.text === text) return;
     this.tweens.killTweensOf([this.bigText, this.band]);
     setTitle(this.bigText, text, grad);
     this.bigText.setScale(2.4).setAlpha(0);
@@ -233,9 +234,10 @@ class FightScene extends Phaser.Scene {
   }
 
   // ---------- Efectos ----------
-  addTrauma(a) { this.trauma = Math.min(1, this.trauma + a); }
+  addTrauma(a) { if (!this.replaying) this.trauma = Math.min(1, this.trauma + a); }
 
   spark(x, y, color, n = 8, speed = 300) {
+    if (this.replaying) return;
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2, s = speed * (0.3 + Math.random() * 0.7);
       this.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.3 + Math.random() * 0.25, max: 0.5, color, size: 2 + Math.random() * 3, grav: 400 });
@@ -243,12 +245,14 @@ class FightScene extends Phaser.Scene {
   }
 
   dust(x, n = 6, y = GROUND) {
+    if (this.replaying) return;
     for (let i = 0; i < n; i++) {
       this.particles.push({ x: x + (Math.random() - 0.5) * 30, y: y - 2, vx: (Math.random() - 0.5) * 260, vy: -Math.random() * 120, life: 0.4 + Math.random() * 0.3, max: 0.7, color: 0xb8a8d8, size: 4 + Math.random() * 5, grav: 100 });
     }
   }
 
   popText(f, text, color = '#ffffff', size = 26) {
+    if (this.replaying) return;
     const t = titleText(this, f.x, f.y - 165, text, size, { color, strokeW: 5 });
     this.popLayer.add(t);
     t.setScale(0.3);
@@ -257,6 +261,7 @@ class FightScene extends Phaser.Scene {
   }
 
   damageNumber(x, y, dmg) {
+    if (this.replaying) return;
     const t = titleText(this, x + (Math.random() - 0.5) * 30, y, '' + Math.round(dmg), 28, { gradient: GRAD.gold, strokeW: 5 });
     this.popLayer.add(t);
     t.setScale(1.6);
@@ -266,6 +271,7 @@ class FightScene extends Phaser.Scene {
 
   superFreeze(f) {
     this.freezeT = 0.8;
+    if (this.replaying) return;
     Sfx.super();
     const g = this.superG; g.clear();
     const acc = f.colors.accent;
@@ -485,6 +491,23 @@ class FightScene extends Phaser.Scene {
     }
   }
 
+  // ---------- Estado completo de la pelea (para el rollback) ----------
+  snapshot() {
+    return {
+      frame: this.frame, phase: this.phase, phaseT: this.phaseT, saidFight: this.saidFight, timeLeft: this.timeLeft,
+      round: this.round, freezeT: this.freezeT, hitstop: this.hitstop, slowmo: this.slowmo,
+      f: this.fighters.map((f) => f.saveState()),
+      proj: this.projectiles.map((p) => Object.assign({}, p)),
+    };
+  }
+
+  loadSnap(s) {
+    Object.assign(this, { frame: s.frame, phase: s.phase, phaseT: s.phaseT, saidFight: s.saidFight, timeLeft: s.timeLeft,
+      round: s.round, freezeT: s.freezeT, hitstop: s.hitstop, slowmo: s.slowmo });
+    this.fighters.forEach((f, i) => f.loadState(s.f[i]));
+    this.projectiles = s.proj.map((p) => Object.assign({}, p));
+  }
+
   // ---------- Online ----------
   setupNet() {
     const g = this.cfg.fightId;
@@ -495,6 +518,12 @@ class FightScene extends Phaser.Scene {
     for (let f = 0; f < this.D; f++) { this.localIn.set(f, 0); if (!this.remoteIn.has(f)) this.remoteIn.set(f, 0); }
     this.nextLocal = this.D;
     this.stallStart = 0;
+    this.snaps = new Map();      // cuadro -> estado guardado antes de calcularlo
+    this.used = new Map();       // cuadro -> teclas del rival que se usaron (reales o adivinadas)
+    this.confirmed = this.D - 1; // último cuadro con teclas reales del rival
+    this.nextSum = 120;
+    NetStats.lastIn = 0;
+    this.startKeepAlive();
     this.netPanelOn = false;
     this.netPanelT = 0;
     this.netPanelG = this.add.graphics().setDepth(29).setVisible(false);
@@ -508,6 +537,40 @@ class FightScene extends Phaser.Scene {
     this.escT = 0;
     this.netMsg = uiText(this, GAME_W / 2, 118, '', 18, '#ffffff', { ox: 0.5, shadow: true }).setDepth(22);
     this.pingLabel = uiText(this, GAME_W / 2, 100, '', 12, '#c9c2e8', { ox: 0.5 }).setDepth(6);
+  }
+
+  // Calcula un cuadro con mis teclas y las del rival (reales si llegaron, si no, adivinadas)
+  stepFrame() {
+    const f = this.frame;
+    this.snaps.set(f, this.snapshot());
+    this.snaps.delete(f - ROLLBACK_MAX - 30);
+    let rb = this.remoteIn.get(f);
+    if (rb === undefined) rb = (this.remoteIn.get(this.confirmed) || 0) & 0x7f; // repite lo que mantenía apretado
+    this.used.set(f, rb);
+    this.used.delete(f - ROLLBACK_MAX - 30);
+    this.localIn.delete(f - ROLLBACK_MAX - 30);
+    const lb = this.localIn.get(f) || 0;
+    this.simStep(decodeIntent(this.me === 0 ? lb : rb), decodeIntent(this.me === 0 ? rb : lb));
+  }
+
+  // Si la ventana queda oculta o minimizada, el juego sigue mandando teclas
+  // (si no, el rival se queda esperando y la partida se corta)
+  startKeepAlive() {
+    try {
+      const src = 'setInterval(() => postMessage(0), 16);';
+      this.keepWorker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+      let last = performance.now();
+      this.keepWorker.onmessage = () => {
+        const now = performance.now();
+        const dt = Math.min((now - last) / 1000, 0.1);
+        last = now;
+        if (document.hidden && !this.netOver && this.sys.isActive()) this.netTick(dt);
+      };
+      this.events.once('shutdown', () => { this.keepWorker.terminate(); });
+    } catch (e) { /* sin worker: sigue igual que antes */ }
+    this.onVis = () => Net.send({ t: 'chat', hidden: document.hidden });
+    document.addEventListener('visibilitychange', this.onVis);
+    this.events.once('shutdown', () => document.removeEventListener('visibilitychange', this.onVis));
   }
 
   netEsc() {
@@ -525,30 +588,50 @@ class FightScene extends Phaser.Scene {
     }
     if (Net.rival.left || Net.status === 'error') { this.netGone(Net.status === 'error' ? 'lost' : 'left'); return; }
 
+    // 1) Teclas del rival recién llegadas: si adiviné mal algún cuadro, vuelvo atrás y recalculo
+    let rollbackTo = -1;
+    for (let f = this.confirmed + 1; this.remoteIn.has(f); f++) {
+      const rb = this.remoteIn.get(f);
+      if (f < this.frame && this.used.get(f) !== rb && rollbackTo < 0) rollbackTo = f;
+      this.confirmed = f;
+    }
+    if (rollbackTo >= 0 && this.snaps.has(rollbackTo)) {
+      const cur = this.frame;
+      this.loadSnap(this.snaps.get(rollbackTo));
+      this.replaying = true; SIM_SILENT = true;
+      while (this.frame < cur) this.stepFrame();
+      this.replaying = false; SIM_SILENT = false;
+      NetStats.rollbacks = (NetStats.rollbacks || 0) + 1;
+      NetStats.rollbackMax = Math.max(NetStats.rollbackMax || 0, cur - rollbackTo);
+    }
+
+    // 2) Avanzar en tiempo real, adivinando las teclas del rival que todavía no llegaron
     this.acc = Math.min(this.acc + realDt, 0.2);
     let stepped = 0;
+    let waiting = false;
     while (this.acc >= STEP && stepped < 5) {
-      // Mis teclas para dentro de INPUT_DELAY cuadros: se guardan y se mandan al rival
+      // Mis teclas para dentro de D cuadros: se guardan y se mandan al rival
       while (this.nextLocal <= this.frame + this.D) {
         const b = encodeIntent(this.c1.update());
         this.localIn.set(this.nextLocal, b);
         Net.send({ t: 'in', g, f: this.nextLocal, b });
         this.nextLocal++;
       }
-      const rb = this.remoteIn.get(this.frame);
-      if (rb === undefined) break; // todavía no llegaron las teclas del rival para este cuadro
-      const lb = this.localIn.get(this.frame);
-      const a = decodeIntent(this.me === 0 ? lb : rb), b2 = decodeIntent(this.me === 0 ? rb : lb);
-      this.localIn.delete(this.frame - 30); this.remoteIn.delete(this.frame - 30);
-      this.simStep(a, b2);
+      // Si me adelanté demasiado sin confirmar, espero (pasa solo con cortes largos)
+      if (this.frame - this.confirmed > ROLLBACK_MAX) { waiting = true; break; }
+      this.stepFrame();
       this.acc -= STEP; stepped++;
-      if (this.frame % 120 === 0) {
-        const h = fightHash(this);
-        this.mySums.set(this.frame, h);
-        Net.send({ t: 'sum', g, f: this.frame, h });
-      }
     }
-    if (stepped === 0 && this.acc >= STEP) {
+
+    // 3) Huella de los cuadros ya confirmados, para comparar con el rival
+    while (this.nextSum - 1 <= this.confirmed && this.snaps.has(this.nextSum)) {
+      const h = snapHash(this.snaps.get(this.nextSum));
+      this.mySums.set(this.nextSum, h);
+      Net.send({ t: 'sum', g, f: this.nextSum, h });
+      this.nextSum += 120;
+    }
+
+    if (waiting) {
       this.stallT += realDt; this.acc = Math.min(this.acc, STEP * 2);
       if (!this.stallStart) { this.stallStart = performance.now(); this.stallFrame = this.frame; }
     } else if (stepped > 0) {
@@ -585,8 +668,8 @@ class FightScene extends Phaser.Scene {
 
     this.escT = Math.max(0, this.escT - realDt);
     let msg = '';
-    if (this.stallT > 0.4) msg = 'Esperando al rival…';
-    if (this.stallT > 15) { this.netGone('lost'); return; }
+    if (this.stallT > 0.4) msg = Net.rival.hidden ? 'Tu rival minimizó el juego… esperando' : 'Esperando al rival…';
+    if (this.stallT > 30) { this.netGone('lost'); return; }
     if (this.escT > 0) msg = 'Apretá ESC otra vez para abandonar';
     if (this.phase === 'end') msg = this.wantAgain ? (Net.rival.again ? '' : 'Esperando que tu rival acepte la revancha…') : (Net.rival.again ? '¡Tu rival quiere la revancha!' : '');
     if (this.netMsg.text !== msg) this.netMsg.setText(msg);
@@ -607,6 +690,7 @@ class FightScene extends Phaser.Scene {
       `Ping al servidor: ${Net.ping} ms   (máx 10 s: ${sp.max})`,
       `Ping al rival: ${rp.avg} ms   (máx 10 s: ${rp.max})`,
       `Retraso de teclas: ${this.D} cuadros (${Math.round(this.D * 1000 / 60)} ms)`,
+      `Correcciones (rollback): ${S.rollbacks || 0}  ·  la más larga ${S.rollbackMax || 0} cuadros`,
       `Pausas por lag: ${S.stalls}  ·  total ${(S.stallTotal / 1000).toFixed(1)} s  ·  peor ${Math.round(S.stallMax)} ms`,
       `Huecos sin teclas del rival: ${S.gaps}  ·  peor ${Math.round(S.gapMax)} ms`,
       `FPS: esta PC ${Math.round(this.game.loop.actualFps)}  ·  rival ${S.rivalFps || '?'}`,
@@ -708,6 +792,8 @@ class FightScene extends Phaser.Scene {
     this.phase = 'end';
     this.phaseT = 0;
     winner.victory = true;
+    if (this.endShown) return;
+    this.endShown = true;
     const isP1 = winner === this.f1;
     const who = this.net ? (winner === this.fighters[this.me] ? '¡GANASTE! SOS' : 'TU RIVAL ES') : isP1 ? 'EL JUGADOR 1 ES' : (this.ai ? 'LA MÁQUINA ES' : 'EL JUGADOR 2 ES');
     this.tweens.killTweensOf([this.bigText, this.band]);
@@ -756,6 +842,8 @@ class FightScene extends Phaser.Scene {
   }
 
   render() {
+    // Si un rollback deshizo el final de la pelea, se esconde el cartel
+    if (this.endShown && this.phase !== 'end') { this.endShown = false; this.endBox.setVisible(false); }
     const sg = this.shadowG; sg.clear();
     for (const f of this.fighters) {
       const h = GROUND - f.y;

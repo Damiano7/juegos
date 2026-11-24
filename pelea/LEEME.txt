@@ -43,7 +43,8 @@ MODO ONLINE
   La dirección del servidor está en js/online-config.js.
   Para probarlo con un servidor en tu propia PC: index.html?server=ws://localhost:8787
   Durante una pelea online: N muestra el medidor de red, L descarga un informe de lag.
-  Retraso de teclas para probar: agregar ?delay=6 a la dirección (se usa el mayor de los dos).
+  El online usa "rollback": no espera las teclas del rival, las adivina y corrige si hace falta
+  (js/rollback.js). Retraso de teclas: 2 cuadros; para probar otro, agregar ?delay=4 a la dirección.
 
 PARA TOCAR COSAS (archivos en la carpeta js/)
 - characters.js : cada héroe. "speed" = velocidad, "jump" = salto, "dmg" = daño,
@@ -52,6 +53,7 @@ PARA TOCAR COSAS (archivos en la carpeta js/)
 - ai.js         : qué tan difícil es la máquina en cada nivel.
 - menus.js      : menú principal, "Cómo se juega" y selección de héroes.
 - fight.js      : la pelea y su pantalla (tiempo del round: buscar "timeLeft = 60").
-- net.js        : conexión online (solo viajan las teclas; retraso de 4 cuadros).
+- net.js        : conexión online (solo viajan las teclas).
+- rollback.js   : guarda y restaura la pelea para corregir cuando llegan las teclas del rival.
 - ui.js         : estilo visual (tipografías, colores, teclas dibujadas, escenario).
 Después de cambiar algo, guardá y recargá la página (F5).

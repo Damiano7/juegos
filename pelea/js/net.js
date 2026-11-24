@@ -1,12 +1,12 @@
 // Conexión con el servidor online.
 // Las dos computadoras calculan la misma pelea; por internet solo viajan las teclas.
 const NET_PROTO = 1;      // tiene que coincidir con el servidor
-const GAME_BUILD = 4;     // versión del juego: los dos jugadores tienen que tener la misma
+const GAME_BUILD = 5;     // versión del juego: los dos jugadores tienen que tener la misma
 // Cuadros de retraso de las teclas (4/60 s ≈ 67 ms): da tiempo a que lleguen las del otro.
 // Para probar se puede cambiar con ?delay=6 en la dirección. Se usa el mayor de los dos jugadores.
 const INPUT_DELAY = (() => {
   const q = Number(new URLSearchParams(location.search).get('delay'));
-  return q >= 2 && q <= 12 ? Math.round(q) : 4;
+  return q >= 1 && q <= 12 ? Math.round(q) : 2;
 })();
 
 // ---------- Medidor de red ----------
@@ -26,6 +26,7 @@ const NetStats = {
     this.stalls = 0; this.stallTotal = 0; this.stallMax = 0;
     this.gaps = 0; this.gapMax = 0; this.hitches = 0; this.hitchMax = 0;
     this.lastIn = 0;
+    this.rollbacks = 0; this.rollbackMax = 0;
   },
   now() { return Math.round(performance.now() - this.t0); },
   event(tipo, ms, extra) {
@@ -145,6 +146,7 @@ const Net = {
         break;
       case 'chat':
         if (m.ver !== undefined) this.rival.ver = m.ver;
+        if (m.hidden !== undefined) this.rival.hidden = m.hidden;
         if (m.delay !== undefined) this.delay = Math.max(INPUT_DELAY, Math.min(12, m.delay));
         if (m.echo !== undefined) { this.send({ t: 'chat', echoBack: m.echo }); if (m.fps) NetStats.rivalFps = m.fps; }
         if (m.echoBack !== undefined) {
@@ -218,6 +220,7 @@ function netReport(scene) {
     navegador: navigator.userAgent, pantalla: `${screen.width}x${screen.height}`,
     resumen: {
       ping_servidor: S.window(S.srvPings, 99999), ping_rival: S.window(S.rivalPings, 99999),
+      correcciones_rollback: S.rollbacks, correccion_mas_larga_cuadros: S.rollbackMax,
       pausas_por_lag: S.stalls, pausas_total_ms: Math.round(S.stallTotal), pausa_mas_larga_ms: Math.round(S.stallMax),
       huecos_de_llegada: S.gaps, hueco_mas_largo_ms: Math.round(S.gapMax),
       trabones_de_esta_pc: S.hitches, trabon_mas_largo_ms: Math.round(S.hitchMax),
